@@ -153,6 +153,29 @@ footer.note{text-align:center;font-size:11.5px;color:var(--ink-soft);padding:8px
 .foldbody{display:none}
 .card.open>.foldbody{display:block;margin-top:14px}
 
+/* ---- Rechner ---- */
+.twobox{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.wbox{border:1px solid var(--line);border-radius:12px;padding:13px 14px;background:#FBFDFD}
+.wbox.win{border-color:var(--good);background:#E9F4EE}
+.wbox .wt{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-soft);margin-bottom:5px}
+.wbox .wv{font-family:'Barlow Condensed',sans-serif;font-size:30px;font-weight:700;color:var(--teal-deep);line-height:1}
+.wbox .wu{font-size:11.5px;color:var(--ink-soft);margin-top:4px;line-height:1.35}
+.calcrow{display:flex;justify-content:space-between;gap:10px;font-size:13px;padding:5px 0;border-bottom:1px solid var(--line)}
+.calcrow:last-child{border-bottom:none}
+.calcrow span:last-child{font-family:'JetBrains Mono',monospace;font-weight:700;white-space:nowrap}
+.calcrow.sum{border-top:1.5px solid var(--teal);border-bottom:none;margin-top:4px;padding-top:8px;font-weight:600;color:var(--teal-deep)}
+.calcrow.neg span:last-child{color:var(--warn)}
+table.lg{width:100%;border-collapse:collapse;font-size:12.5px}
+table.lg th{text-align:right;font-family:'JetBrains Mono',monospace;font-size:9.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-soft);padding:6px 4px;border-bottom:1.5px solid var(--line)}
+table.lg th:first-child{text-align:left}
+table.lg td{padding:6px 4px;border-bottom:1px solid var(--line);font-family:'JetBrains Mono',monospace;text-align:right}
+table.lg td:first-child{text-align:left;font-weight:700;color:var(--teal-deep)}
+table.lg tr.mark td{background:#F2F8F7}
+.pricegrid{display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:8px;align-items:center;margin-bottom:8px}
+.pricegrid label{margin:0;font-size:12.5px}
+.pricegrid input{font-size:14px;padding:8px 9px}
+.pricehead{font-family:'JetBrains Mono',monospace;font-size:9.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-soft);text-align:center}
+
 /* ---- Wetter ---- */
 header.top .hrow{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
 .wx-chip{display:inline-flex;align-items:center;gap:7px;background:var(--card);border:1px solid var(--line);border-radius:20px;padding:7px 11px;cursor:pointer;box-shadow:0 1px 2px rgba(15,74,80,.05);-webkit-tap-highlight-color:transparent;flex:0 0 auto}
@@ -206,6 +229,8 @@ header.top .hrow{display:flex;align-items:flex-start;justify-content:space-betwe
     <div id="storageBanner" class="banner"></div>
     <div id="pondList"></div>
     <button class="btn ghost" id="newPondBtn">+ Neuen Teich anlegen</button>
+
+    <button class="btn ghost" id="calcBtn" style="margin-top:10px">Kalkulation &amp; Längentabelle</button>
 
     <button class="btn ghost" id="recordsBtn" style="margin-top:10px">Nachweise &amp; Betriebstagebuch</button>
 
@@ -619,6 +644,99 @@ header.top .hrow{display:flex;align-items:flex-start;justify-content:space-betwe
   </div>
 </div>
 
+<!-- ============ KALKULATION ============ -->
+<div id="viewCalc" class="hidden">
+  <header class="top">
+    <div class="backlink" id="calcBackBtn">← Alle Teiche</div>
+    <h1>Kalkulation</h1>
+    <p class="sub">Was ein Fisch bringt — als Besatz oder als Speisefisch.</p>
+  </header>
+  <div class="wrap">
+
+    <div class="card" data-fold="calcWeg">
+      <h2>Besatz oder Speisefisch</h2>
+      <div class="field">
+        <label>Teich übernehmen</label>
+        <select id="cwPond"></select>
+      </div>
+      <div class="row2">
+        <div class="field"><label>Fischart</label><select id="cwArt"></select></div>
+        <div class="field"><label>Verkauf an</label><select id="cwKanal">
+          <option value="priv">Privat / ab Teich</option>
+          <option value="gastro">Edeka / Gastro</option>
+        </select></div>
+      </div>
+      <div class="row2">
+        <div class="field"><label>Jetzt: Länge (cm)</label><input type="number" id="cwLen" step="0.5" min="1" inputmode="decimal"></div>
+        <div class="field"><label>Jetzt: Gewicht (g)</label><input type="number" id="cwG" step="1" min="1" inputmode="decimal"></div>
+      </div>
+      <div class="field">
+        <label>Zielgewicht lebend (g)</label>
+        <input type="number" id="cwZiel" step="10" min="1" inputmode="decimal" placeholder="350">
+      </div>
+      <div id="cwOut"></div>
+    </div>
+
+    <div class="card" data-fold="calcLen">
+      <h2>Länge und Gewicht</h2>
+      <div class="row2">
+        <div class="field"><label>Länge (cm)</label><input type="number" id="clLen" step="0.5" min="1" inputmode="decimal" placeholder="20"></div>
+        <div class="field"><label>Gewicht (g)</label><input type="number" id="clG" step="1" min="0.1" inputmode="decimal"></div>
+      </div>
+      <div id="clOut"></div>
+      <button class="btn ghost" id="clTableBtn" style="margin-top:12px">Ganze Tabelle zeigen</button>
+      <div id="clTable" class="hidden" style="margin-top:14px"></div>
+    </div>
+
+    <div class="card" data-fold="calcMess">
+      <h2>Eigene Probewiegungen</h2>
+      <div class="hint" style="margin-bottom:12px">Miss ein paar Fische und wieg sie. Aus deinen Werten justiert die App die Formel nach — je mehr Messungen, desto besser passt die Tabelle auf deine Fische.</div>
+      <div class="row2">
+        <div class="field"><label>Länge (cm)</label><input type="number" id="cmLen" step="0.5" min="1" inputmode="decimal"></div>
+        <div class="field"><label>Ø-Gewicht (g)</label><input type="number" id="cmG" step="0.1" min="0.1" inputmode="decimal"></div>
+      </div>
+      <button class="btn" id="cmAdd">Messung übernehmen</button>
+      <div id="cmList" style="margin-top:14px"></div>
+    </div>
+
+    <div class="card" data-fold="calcPreis">
+      <h2>Preise</h2>
+      <div class="hint" style="margin-bottom:14px">Startwerte, die du jederzeit ändern kannst. Die Bayerische Landesanstalt für Landwirtschaft nennt für Saiblinge 20–30 % Aufschlag gegenüber Regenbogenforellen.</div>
+
+      <div class="arrowbox">
+        <h3>Besatzfisch (Cent je cm)</h3>
+        <div id="cpBesatz"></div>
+      </div>
+
+      <div class="arrowbox">
+        <h3>Speisefisch küchenfertig (€/kg)</h3>
+        <div class="pricegrid"><span></span><span class="pricehead">Privat</span><span class="pricehead">Edeka</span></div>
+        <div id="cpSpeise"></div>
+      </div>
+
+      <div class="arrowbox">
+        <h3>Kosten und Annahmen</h3>
+        <div class="row2">
+          <div class="field"><label>Futter (€/kg)</label><input type="number" id="cpFutter" step="0.05" min="0" inputmode="decimal"></div>
+          <div class="field"><label>Futterquotient</label><input type="number" id="cpFcr" step="0.05" min="0.1" inputmode="decimal"></div>
+        </div>
+        <div class="row2">
+          <div class="field"><label>Sonstiges je Fisch (€)</label><input type="number" id="cpSonst" step="0.05" min="0" inputmode="decimal"></div>
+          <div class="field"><label>Verluste (%)</label><input type="number" id="cpVerlust" step="0.5" min="0" max="50" inputmode="decimal"></div>
+        </div>
+        <div class="field" style="margin-bottom:0"><label>Ausbeute küchenfertig (%)</label>
+          <input type="number" id="cpAusbeute" step="1" min="40" max="100" inputmode="decimal">
+          <div class="hint">Anteil vom Lebendgewicht, der verkauft wird. 350 g lebend ergeben bei 86 % rund 300 g küchenfertig.</div>
+        </div>
+      </div>
+
+      <button class="btn" id="cpSave">Preise speichern</button>
+    </div>
+
+    <footer class="note">Gewicht = Länge hoch 3 geteilt durch 100, nachjustiert mit deinen Messungen.</footer>
+  </div>
+</div>
+
 <script>
 const TEMPS=[2,4,6,8,10,12,14,16,18];
 const PRODUCTS={
@@ -785,7 +903,7 @@ async function load(){
 
 /* ---------- views ---------- */
 function show(v){
-  ['viewList','viewDetail','viewNew','viewRecords','viewWeather'].forEach(id=>document.getElementById(id).classList.add('hidden'));
+  ['viewList','viewDetail','viewNew','viewRecords','viewWeather','viewCalc'].forEach(id=>document.getElementById(id).classList.add('hidden'));
   document.getElementById(v).classList.remove('hidden');
   window.scrollTo(0,0);
 }
@@ -2249,8 +2367,264 @@ function initWeather(){
   wxFetch();
 }
 
+/* ================= Kalkulation ================= */
+const CALCKEY='fischzucht-kalk';
+const ARTEN=[['regen','Regenbogenforelle'],['bach','Bachforelle'],['saib','Saibling']];
+const CALC_DEF={
+  mess:[],
+  besatz:{regen:6,bach:7,saib:8},
+  speise:{regen:{priv:15,gastro:10},bach:{priv:19,gastro:13},saib:{priv:18,gastro:12.5}},
+  futter:2.70, fcr:0.9, sonst:0.30, verlust:3, ausbeute:86
+};
+let calc=JSON.parse(JSON.stringify(CALC_DEF));
+
+function calcLoad(){
+  try{
+    const r=localStorage.getItem(CALCKEY);
+    if(r){
+      const j=JSON.parse(r);
+      calc=Object.assign(JSON.parse(JSON.stringify(CALC_DEF)),j);
+      calc.besatz=Object.assign({},CALC_DEF.besatz,j.besatz||{});
+      calc.speise=Object.assign({},JSON.parse(JSON.stringify(CALC_DEF.speise)),j.speise||{});
+      if(!Array.isArray(calc.mess))calc.mess=[];
+    }
+  }catch(e){}
+}
+function calcSave(){try{localStorage.setItem(CALCKEY,JSON.stringify(calc))}catch(e){}}
+
+/* Faktor aus den eigenen Probewiegungen: g = k * L^3 / 100 */
+function lgK(){
+  const m=calc.mess.filter(x=>x.L>0&&x.g>0);
+  if(!m.length)return 1;
+  const ks=m.map(x=>x.g*100/Math.pow(x.L,3));
+  return ks.reduce((a,b)=>a+b,0)/ks.length;
+}
+function lgWeight(L){return lgK()*Math.pow(L,3)/100}
+function lgLength(g){return Math.pow(g*100/lgK(),1/3)}
+function artKey(name){
+  if(!name)return 'regen';
+  if(/saibling/i.test(name))return 'saib';
+  if(/bachforelle/i.test(name))return 'bach';
+  return 'regen';
+}
+function artName(k){const a=ARTEN.find(x=>x[0]===k);return a?a[1]:'Regenbogenforelle'}
+function eur(v,d){return fmt(v,d==null?2:d)+' €'}
+
+/* ---------- Länge und Gewicht ---------- */
+function renderCalcLen(){
+  const out=document.getElementById('clOut');
+  const L=parseFloat(String(document.getElementById('clLen').value).replace(',','.'));
+  if(!(L>0)){out.innerHTML='<div class="hint">Länge eingeben — Gewicht, Stückzahl je Kilo und Besatzwert erscheinen dann hier.</div>';return}
+  const g=lgWeight(L);
+  const rows=ARTEN.map(([k,n])=>{
+    const wert=L*calc.besatz[k]/100;
+    return `<div class="calcrow"><span>${n} · ${fmt(calc.besatz[k],0)} ct/cm</span><span>${eur(wert)} · ${eur(wert/(g/1000))}/kg</span></div>`;
+  }).join('');
+  out.innerHTML=`<div class="twobox" style="margin-bottom:12px">
+      <div class="wbox"><div class="wt">Gewicht</div><div class="wv">${fmt(g,g<10?2:0)}<span style="font-size:16px"> g</span></div><div class="wu">bei ${fmt(L,1)} cm</div></div>
+      <div class="wbox"><div class="wt">Stück je kg</div><div class="wv">${g>0?fmt(1000/g,g<50?0:1):'–'}</div><div class="wu">rechnerisch</div></div>
+    </div>${rows}`;
+}
+function renderCalcTable(){
+  const box=document.getElementById('clTable');
+  const lens=[];
+  for(let L=5;L<=20;L++)lens.push(L);
+  for(let L=22;L<=40;L+=2)lens.push(L);
+  for(let L=45;L<=75;L+=5)lens.push(L);
+  const rows=lens.map(L=>{
+    const g=lgWeight(L);
+    const mark=(g>=1000&&lgWeight(L-1)<1000)||L===20;
+    return `<tr class="${mark?'mark':''}"><td>${L} cm</td><td>${fmt(g,g<10?2:0)} g</td><td>${fmt(1000/g,g<50?0:1)}</td>
+      <td>${eur(L*calc.besatz.regen/100)}</td><td>${eur(L*calc.besatz.saib/100)}</td></tr>`;
+  }).join('');
+  box.innerHTML=`<table class="lg">
+    <tr><th>Länge</th><th>Gewicht</th><th>St./kg</th><th>Regenb.</th><th>Saibl.</th></tr>${rows}</table>
+    <div class="hint" style="margin-top:10px">Unter 10 cm liegt die Formel unter deiner Faustregel, über 50 cm eher 10–20 % zu niedrig, weil die Fische fülliger werden. Trag Probewiegungen ein, dann rückt die Tabelle näher an deine Fische.</div>`;
+}
+
+/* ---------- Besatz oder Speisefisch ---------- */
+function calcPondList(){
+  const sel=document.getElementById('cwPond');
+  const cur=sel.value;
+  sel.innerHTML='<option value="">— frei rechnen —</option>'+
+    ponds.map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
+  sel.value=cur;
+}
+function renderCalcWeg(){
+  const out=document.getElementById('cwOut');
+  const art=document.getElementById('cwArt').value||'regen';
+  const kanal=document.getElementById('cwKanal').value||'priv';
+  const g0=parseFloat(String(document.getElementById('cwG').value).replace(',','.'));
+  const ziel=parseFloat(String(document.getElementById('cwZiel').value).replace(',','.'));
+  if(!(g0>0)){out.innerHTML='<div class="hint">Länge oder Gewicht eingeben.</div>';return}
+  const L=lgLength(g0);
+  const besatzWert=L*calc.besatz[art]/100;
+  const besatzKg=besatzWert/(g0/1000);
+
+  let bBox='<div class="wbox"><div class="wt">Weg B — weiterfüttern</div><div class="wv">–</div><div class="wu">Zielgewicht eingeben</div></div>';
+  let detail='', aWin=false;
+  if(ziel>g0){
+    const preis=calc.speise[art][kanal];
+    const kf=ziel*calc.ausbeute/100/1000;
+    const erloes=kf*preis;
+    const zuwachs=(ziel-g0)/1000;
+    const futter=zuwachs*calc.fcr*calc.futter;
+    const verlust=erloes*calc.verlust/100;
+    const netto=erloes-futter-calc.sonst-verlust;
+    const mehr=netto-besatzWert;
+    aWin=mehr<0;
+    bBox=`<div class="wbox${mehr>0?' win':''}"><div class="wt">Weg B — Speisefisch</div><div class="wv">${fmt(netto,2)}<span style="font-size:16px"> €</span></div><div class="wu">${fmt(netto/kf,2)} €/kg küchenfertig</div></div>`;
+
+    const pid=document.getElementById('cwPond').value;
+    const pond=ponds.find(x=>x.id===pid);
+    let dauer='';
+    if(pond){
+      try{
+        const sim=simulate(Object.assign({},pond,{totalKg:g0/1000,avgG:g0,count:1,manualOn:false}),ziel,{factor:1});
+        if(sim.reached) dauer=`<div class="calcrow"><span>Dauer bis ${fmt(ziel,0)} g</span><span>ca. ${sim.days} Tage</span></div>`;
+      }catch(e){}
+    }
+    detail=`<div style="margin-top:14px">
+      <div class="calcrow"><span>Erlös ${fmt(kf*1000,0)} g küchenfertig × ${fmt(preis,2)} €</span><span>${eur(erloes)}</span></div>
+      <div class="calcrow neg"><span>Futter ${fmt(zuwachs*calc.fcr*1000,0)} g (FQ ${fmt(calc.fcr,2)})</span><span>−${eur(futter)}</span></div>
+      <div class="calcrow neg"><span>Sonstiges</span><span>−${eur(calc.sonst)}</span></div>
+      <div class="calcrow neg"><span>Verluste ${fmt(calc.verlust,1)} %</span><span>−${eur(verlust)}</span></div>
+      <div class="calcrow sum"><span>Weg B netto je Fisch</span><span>${eur(netto)}</span></div>
+      <div class="calcrow sum"><span>${mehr>=0?'Mehrertrag gegenüber Besatz':'Weniger als Besatzverkauf'}</span><span>${mehr>=0?'+':''}${eur(mehr)}</span></div>
+      ${dauer}</div>`;
+  }
+
+  out.innerHTML=`<div class="twobox" style="margin-top:4px">
+      <div class="wbox${aWin?' win':''}"><div class="wt">Weg A — Besatz jetzt</div><div class="wv">${fmt(besatzWert,2)}<span style="font-size:16px"> €</span></div><div class="wu">${fmt(besatzKg,2)} €/kg lebend · ${fmt(L,1)} cm</div></div>
+      ${bBox}
+    </div>${detail}`;
+}
+function cwSyncFromG(){
+  const g=parseFloat(String(document.getElementById('cwG').value).replace(',','.'));
+  if(g>0) document.getElementById('cwLen').value=Math.round(lgLength(g)*10)/10;
+  renderCalcWeg();
+}
+function cwSyncFromL(){
+  const L=parseFloat(String(document.getElementById('cwLen').value).replace(',','.'));
+  if(L>0) document.getElementById('cwG').value=Math.round(lgWeight(L)*10)/10;
+  renderCalcWeg();
+}
+
+/* ---------- Probewiegungen ---------- */
+function renderCalcMess(){
+  const box=document.getElementById('cmList');
+  const k=lgK();
+  const head=`<div class="pgrid" style="margin-bottom:12px">
+      <div><span>Faktor</span>${fmt(k,3)}</div>
+      <div><span>Messungen</span>${calc.mess.length}</div>
+    </div>`;
+  if(!calc.mess.length){box.innerHTML=head+'<div class="hint">Noch keine Messung. Bis dahin rechnet die App mit der Grundformel.</div>';return}
+  const rows=calc.mess.map((m,i)=>
+    `<tr><td>${fmt(m.L,1)} cm</td><td>${fmt(m.g,1)} g</td><td>${fmt(m.g*100/Math.pow(m.L,3),3)}</td>
+     <td><span class="delete-x" data-mess="${i}">✕</span></td></tr>`).join('');
+  box.innerHTML=head+`<table class="lg"><tr><th>Länge</th><th>Gewicht</th><th>Faktor</th><th></th></tr>${rows}</table>`;
+  box.querySelectorAll('[data-mess]').forEach(el=>el.addEventListener('click',()=>{
+    calc.mess.splice(+el.dataset.mess,1); calcSave(); renderCalcAll(); toast('Messung entfernt.');
+  }));
+}
+
+/* ---------- Preise ---------- */
+function renderCalcPrices(){
+  document.getElementById('cpBesatz').innerHTML=ARTEN.map(([k,n])=>
+    `<div class="field" style="margin-bottom:10px"><label>${n}</label>
+      <input type="number" step="0.5" min="0" inputmode="decimal" data-cpb="${k}" value="${calc.besatz[k]}"></div>`).join('');
+  document.getElementById('cpSpeise').innerHTML=ARTEN.map(([k,n])=>
+    `<div class="pricegrid"><label>${n}</label>
+      <input type="number" step="0.5" min="0" inputmode="decimal" data-cps="${k}" data-kanal="priv" value="${calc.speise[k].priv}">
+      <input type="number" step="0.5" min="0" inputmode="decimal" data-cps="${k}" data-kanal="gastro" value="${calc.speise[k].gastro}"></div>`).join('');
+  document.getElementById('cpFutter').value=calc.futter;
+  document.getElementById('cpFcr').value=calc.fcr;
+  document.getElementById('cpSonst').value=calc.sonst;
+  document.getElementById('cpVerlust').value=calc.verlust;
+  document.getElementById('cpAusbeute').value=calc.ausbeute;
+}
+
+function renderCalcAll(){
+  renderCalcLen();
+  if(!document.getElementById('clTable').classList.contains('hidden')) renderCalcTable();
+  renderCalcWeg();
+  renderCalcMess();
+  setSum('calcWeg','Besatz jetzt oder weiterfüttern — beides nebeneinander');
+  setSum('calcLen',`Formel mit Faktor <b>${fmt(lgK(),3)}</b> · Tabelle 5–75 cm`);
+  setSum('calcMess',`${calc.mess.length} Messung${calc.mess.length===1?'':'en'} übernommen`);
+  setSum('calcPreis',`Regenbogen <b>${fmt(calc.speise.regen.priv,2)} €/kg</b> · Futter <b>${fmt(calc.futter,2)} €/kg</b>`);
+}
+
+function openCalc(){
+  calcPondList();
+  renderCalcPrices();
+  renderCalcAll();
+  show('viewCalc');
+}
+
+function initCalc(){
+  calcLoad();
+  const artSel=document.getElementById('cwArt');
+  artSel.innerHTML=ARTEN.map(([k,n])=>`<option value="${k}">${n}</option>`).join('');
+
+  document.getElementById('calcBtn').addEventListener('click',openCalc);
+  document.getElementById('calcBackBtn').addEventListener('click',()=>show('viewList'));
+
+  document.getElementById('clLen').addEventListener('input',renderCalcLen);
+  document.getElementById('clG').addEventListener('input',()=>{
+    const g=parseFloat(String(document.getElementById('clG').value).replace(',','.'));
+    if(g>0){document.getElementById('clLen').value=Math.round(lgLength(g)*10)/10; renderCalcLen()}
+  });
+  document.getElementById('clTableBtn').addEventListener('click',()=>{
+    const t=document.getElementById('clTable');
+    const open=t.classList.contains('hidden');
+    t.classList.toggle('hidden',!open);
+    document.getElementById('clTableBtn').textContent=open?'Tabelle ausblenden':'Ganze Tabelle zeigen';
+    if(open)renderCalcTable();
+  });
+
+  document.getElementById('cwG').addEventListener('input',cwSyncFromG);
+  document.getElementById('cwLen').addEventListener('input',cwSyncFromL);
+  ['cwArt','cwKanal','cwZiel'].forEach(id=>document.getElementById(id).addEventListener('input',renderCalcWeg));
+  document.getElementById('cwPond').addEventListener('change',e=>{
+    const p=ponds.find(x=>x.id===e.target.value);
+    if(!p)return;
+    document.getElementById('cwArt').value=artKey(speciesOf(p));
+    document.getElementById('cwG').value=Math.round(p.avgG*10)/10;
+    if(p.targetG) document.getElementById('cwZiel').value=p.targetG;
+    cwSyncFromG();
+  });
+
+  document.getElementById('cmAdd').addEventListener('click',()=>{
+    const L=parseFloat(String(document.getElementById('cmLen').value).replace(',','.'));
+    const g=parseFloat(String(document.getElementById('cmG').value).replace(',','.'));
+    if(!(L>0)||!(g>0)){toast('Länge und Gewicht eingeben.');return}
+    calc.mess.push({L,g,date:today()});
+    calcSave();
+    document.getElementById('cmLen').value='';
+    document.getElementById('cmG').value='';
+    renderCalcAll();
+    toast('Messung übernommen.');
+  });
+
+  document.getElementById('cpSave').addEventListener('click',()=>{
+    const num=(el,fb)=>{const v=parseFloat(String(el.value).replace(',','.'));return isNaN(v)?fb:v};
+    document.querySelectorAll('[data-cpb]').forEach(el=>{calc.besatz[el.dataset.cpb]=num(el,calc.besatz[el.dataset.cpb])});
+    document.querySelectorAll('[data-cps]').forEach(el=>{calc.speise[el.dataset.cps][el.dataset.kanal]=num(el,calc.speise[el.dataset.cps][el.dataset.kanal])});
+    calc.futter=num(document.getElementById('cpFutter'),calc.futter);
+    calc.fcr=num(document.getElementById('cpFcr'),calc.fcr);
+    calc.sonst=num(document.getElementById('cpSonst'),calc.sonst);
+    calc.verlust=num(document.getElementById('cpVerlust'),calc.verlust);
+    calc.ausbeute=num(document.getElementById('cpAusbeute'),calc.ausbeute);
+    calcSave();
+    renderCalcAll();
+    toast('Preise gespeichert.');
+  });
+}
+
 initFolds();
 initWeather();
+initCalc();
 load();
 </script>
 </body>
