@@ -1,0 +1,2257 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0F4A50">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Teiche">
+<title>Teichverwaltung — Futterrechner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#EAF1F0; --card:#fff; --ink:#16262A; --ink-soft:#4B5F63; --line:#D7E3E1;
+  --teal:#1B6B73; --teal-deep:#0F4A50; --gold:#B8892B; --silver:#7C93A3;
+  --good:#2F7A52; --warn:#B8492B; --r:14px;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);
+  background-image:radial-gradient(circle at 15% 0%,rgba(27,107,115,.10),transparent 45%),
+                   radial-gradient(circle at 100% 30%,rgba(124,147,163,.12),transparent 40%);
+  color:var(--ink);font-family:'Inter',system-ui,sans-serif;-webkit-font-smoothing:antialiased;padding-bottom:calc(70px + env(safe-area-inset-bottom,0px))}
+.wrap{max-width:640px;margin:0 auto;padding:0 16px}
+header.top{padding:26px 16px 18px;max-width:640px;margin:0 auto;padding-top:calc(26px + env(safe-area-inset-top,0px))}
+.backlink{-webkit-tap-highlight-color:transparent}
+.eyebrow{font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--teal);margin:0 0 6px}
+h1{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:32px;line-height:1.05;margin:0;color:var(--teal-deep)}
+header.top p.sub{margin:8px 0 0;color:var(--ink-soft);font-size:14px}
+
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:18px;margin-bottom:14px;box-shadow:0 1px 2px rgba(15,74,80,.04)}
+.card h2{font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:19px;margin:0 0 12px;color:var(--teal-deep)}
+
+label{display:block;font-size:13px;font-weight:600;color:var(--ink-soft);margin-bottom:6px}
+.field{margin-bottom:14px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+input[type=number],input[type=text],select{width:100%;font-family:'JetBrains Mono',monospace;font-size:16px;padding:11px 12px;border-radius:9px;border:1.5px solid var(--line);background:#FBFDFD;color:var(--ink);outline:none;transition:border-color .15s}
+input[type=text],select{font-family:'Inter',sans-serif;font-size:15px}
+input:focus,select:focus{border-color:var(--teal)}
+.hint{font-size:12px;color:var(--ink-soft);margin-top:5px}
+input[type=range]{width:100%;accent-color:var(--teal);margin-top:6px}
+
+.btn{width:100%;background:var(--teal);color:#fff;border:none;border-radius:10px;padding:13px;font-family:'Inter',sans-serif;font-weight:600;font-size:14.5px;cursor:pointer;transition:background .15s}
+.btn:hover{background:var(--teal-deep)}
+.btn.ghost{background:transparent;color:var(--teal);border:1.5px solid var(--teal)}
+.btn.danger{background:transparent;color:var(--warn);border:1.5px solid #E8C4BA}
+.btn.big-feed{background:var(--good);font-size:16px;padding:16px}
+.btn.big-feed:hover{background:#256341}
+.btn.big-feed.done{background:#BFD8CA;color:#2F7A52;cursor:default}
+.btn-row{display:flex;gap:10px}
+.btn-row .btn{flex:1}
+
+/* pond list */
+.pond{background:var(--card);border:1px solid var(--line);border-left:5px solid var(--teal);border-radius:var(--r);padding:15px 16px;margin-bottom:12px;cursor:pointer;transition:transform .12s,box-shadow .12s;position:relative}
+.pond:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(15,74,80,.09)}
+.pond.gold{border-left-color:var(--gold)} .pond.silver{border-left-color:var(--silver)}
+.pond.futura2{border-left-color:var(--teal)} .pond.brut{border-left-color:var(--teal-deep)}
+.pond .pname{font-family:'Barlow Condensed',sans-serif;font-size:21px;font-weight:600;color:var(--teal-deep);line-height:1.1}
+.pond .pmeta{font-size:12.5px;color:var(--ink-soft);margin-top:3px}
+.pond .pstats{display:flex;gap:16px;margin-top:10px;flex-wrap:wrap}
+.pond .pstats div{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;color:var(--ink)}
+.pond .pstats span{display:block;font-family:'Inter',sans-serif;font-size:10.5px;font-weight:500;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-soft)}
+.fed-badge{position:absolute;top:14px;right:14px;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;background:#E3F1E8;color:var(--good)}
+.fed-badge.open{background:#FBF0E1;color:var(--gold)}
+
+/* feed pills */
+.feed-pills{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.pill{border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;cursor:pointer;font-size:13px;line-height:1.3;background:#FBFDFD;transition:all .15s}
+.pill b{display:block;font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:600}
+.pill.gold.active{border-color:var(--gold);background:#FBF3E1}
+.pill.silver.active{border-color:var(--silver);background:#EEF2F5}
+.pill.futura2.active{border-color:var(--teal);background:#E4EFEE}
+.pill.brut.active{border-color:var(--teal-deep);background:#E0EBEA}
+.pill.sale.active{border-color:var(--good);background:#E3F1E8}
+.pill.loss.active{border-color:var(--warn);background:#FBE7E1}
+.pill.move.active{border-color:var(--teal);background:#E4EFEE}
+.feed-pills.three{grid-template-columns:1fr 1fr 1fr;gap:7px}
+.feed-pills.four{grid-template-columns:1fr 1fr;gap:8px}
+.pill.inn.active{border-color:#2F6B4F;background:#E3F1E8}
+.tag.move{background:#E4EFEE;color:var(--teal-deep)}
+.tag.movein{background:#E4EFEE;color:var(--teal-deep)}
+.tag.in{background:#EAF0DC;color:#4A5D23}
+.feed-pills.three .pill{padding:9px 8px;font-size:11px}
+.feed-pills.three .pill b{font-size:15px;margin-bottom:1px}
+.arrowbox{background:#F2F8F7;border:1px solid var(--line);border-radius:10px;padding:13px 14px;margin:12px 0}
+.arrowbox h3{font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:600;margin:0 0 8px;color:var(--teal-deep);text-transform:uppercase;letter-spacing:.04em}
+.sitehead{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin:22px 2px 10px}
+.sitehead:first-child{margin-top:4px}
+.sitehead h2{font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:600;color:var(--teal-deep);text-transform:uppercase;letter-spacing:.04em;margin:0}
+.sitehead span{font-family:'Inter',sans-serif;font-size:12px;color:var(--ink-soft);white-space:nowrap}
+.arrowbox .field{margin-bottom:12px}
+.arrowbox .field:last-child{margin-bottom:0}
+.arrowbox+.arrowbox{margin-top:-4px}
+.chk{display:flex;align-items:flex-start;gap:9px;font-size:13px;font-weight:500;color:var(--ink);background:#F2F8F7;border:1px solid var(--line);border-radius:10px;padding:11px 12px;margin:10px 0;cursor:pointer;line-height:1.35}
+.chk input{width:19px;height:19px;accent-color:var(--teal);margin:0;flex:0 0 auto}
+.sample{background:#FBF3E1;border:1px solid #E8D6AC;border-radius:10px;padding:11px 13px;font-size:13px;color:#6B5115;line-height:1.4;margin-top:12px}
+.sample b{color:#8A6412}
+.tag{display:inline-block;font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:20px;font-family:'Inter',sans-serif}
+.tag.sale{background:#E3F1E8;color:var(--good)}
+.tag.loss{background:#FBE7E1;color:var(--warn)}
+
+/* result hero */
+.result{background:linear-gradient(155deg,var(--teal-deep),var(--teal));border-radius:var(--r);padding:22px 20px;color:#fff;margin-bottom:14px;position:relative;overflow:hidden}
+.result::before{content:"";position:absolute;right:-40px;top:-40px;width:160px;height:160px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.10),transparent 70%)}
+.result .rl{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;opacity:.75;margin-bottom:4px}
+.result .big{font-family:'Barlow Condensed',sans-serif;font-size:50px;font-weight:700;line-height:1;margin:2px 0}
+.result .big span{font-size:21px;font-weight:500;opacity:.85}
+.result .rs{font-size:13px;opacity:.85;margin-top:6px}
+.rgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:16px;padding-top:14px;border-top:1px solid rgba(255,255,255,.18)}
+.rgrid .k{font-size:11px;opacity:.75;text-transform:uppercase;letter-spacing:.06em}
+.rgrid .v{font-family:'JetBrains Mono',monospace;font-size:17px;font-weight:700;margin-top:2px}
+
+.temp-readout{display:flex;justify-content:flex-end;align-items:baseline}
+.temp-readout .val{font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:700;color:var(--teal-deep)}
+
+table.log{width:100%;border-collapse:collapse;font-size:12.5px}
+table.log th{text-align:left;font-family:'JetBrains Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-soft);padding:6px 5px;border-bottom:1.5px solid var(--line)}
+table.log td{padding:8px 5px;border-bottom:1px solid var(--line);font-family:'JetBrains Mono',monospace}
+table.log td.name{font-family:'Inter',sans-serif;font-weight:500}
+.empty{text-align:center;padding:22px 10px;color:var(--ink-soft);font-size:13.5px}
+.delete-x{cursor:pointer;color:var(--ink-soft);padding:0 4px}
+.delete-x:hover{color:var(--warn)}
+
+.backlink{display:inline-flex;align-items:center;gap:6px;font-size:14px;color:var(--teal);cursor:pointer;font-weight:600;margin-bottom:10px;padding:9px 14px 9px 11px;background:var(--card);border:1px solid var(--line);border-radius:20px;box-shadow:0 1px 2px rgba(15,74,80,.05)}
+.backlink:active{background:#E4EFEE}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--teal-deep);color:#fff;padding:11px 18px;border-radius:10px;font-size:13.5px;opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;z-index:50;max-width:90%}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(-4px)}
+.pgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px;background:#F2F8F7;border:1px solid var(--line);border-radius:10px;padding:14px}
+.pgrid div{font-family:'JetBrains Mono',monospace;font-size:16px;font-weight:700;color:var(--teal-deep)}
+.pgrid span{display:block;font-family:'Inter',sans-serif;font-size:10.5px;font-weight:500;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-soft);margin-bottom:2px}
+.notice{background:#FBF3E1;border:1px solid #E8D6AC;border-radius:12px;padding:14px 15px;margin-bottom:14px;font-size:13.5px;color:#6B5115;line-height:1.45}
+.notice b{color:#8A6412}
+.notice .btn{background:var(--gold)}
+.notice .btn:hover{background:#96701F}
+.hidden{display:none}
+.banner{border-radius:10px;padding:10px 13px;font-size:12.5px;margin-bottom:14px;display:none}
+.banner.ok{display:block;background:#E3F1E8;color:var(--good);border:1px solid #C6E2D1}
+.banner.bad{display:block;background:#FBE7E1;color:var(--warn);border:1px solid #EFC9BD}
+textarea{width:100%;font-family:'JetBrains Mono',monospace;font-size:11px;padding:10px;border-radius:9px;border:1.5px solid var(--line);background:#FBFDFD;color:var(--ink);outline:none;resize:vertical}
+textarea:focus{border-color:var(--teal)}
+footer.note{text-align:center;font-size:11.5px;color:var(--ink-soft);padding:8px 16px 0}
+
+/* ---- klappbare Abschnitte ---- */
+.card.foldable{padding:16px 18px}
+.foldhead{display:flex;align-items:center;justify-content:space-between;gap:10px;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.foldhead h2{margin:0}
+.foldhead .chev{color:var(--teal);font-size:11px;line-height:1;transition:transform .2s;flex:0 0 auto;opacity:.7}
+.card.open .foldhead .chev{transform:rotate(180deg)}
+.foldsum{font-size:12.5px;color:var(--ink-soft);margin-top:6px;line-height:1.45}
+.foldsum b{font-family:'JetBrains Mono',monospace;color:var(--ink);font-weight:700}
+.card.open>.foldsum{display:none}
+.foldbody{display:none}
+.card.open>.foldbody{display:block;margin-top:14px}
+
+/* ---- Wetter ---- */
+header.top .hrow{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.wx-chip{display:inline-flex;align-items:center;gap:7px;background:var(--card);border:1px solid var(--line);border-radius:20px;padding:7px 11px;cursor:pointer;box-shadow:0 1px 2px rgba(15,74,80,.05);-webkit-tap-highlight-color:transparent;flex:0 0 auto}
+.wx-chip:active{background:#E4EFEE}
+.wx-chip .ic{font-size:15px;line-height:1}
+.wx-chip .tp{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;color:var(--teal-deep)}
+.wx-chip .dot{width:9px;height:9px;border-radius:50%;background:var(--good)}
+.wx-chip .dot.warn{background:var(--gold)}
+.wx-chip .dot.bad{background:var(--warn)}
+.wx-chip.dead{opacity:.5}
+.wx-band{border-radius:12px;padding:14px 15px;margin-bottom:14px;font-size:13px;line-height:1.5;border:1px solid}
+.wx-band.good{background:#E3F1E8;border-color:#C6E2D1;color:#1E5B3B}
+.wx-band.warn{background:#FBF3E1;border-color:#E8D6AC;color:#6B5115}
+.wx-band.bad{background:#FBE7E1;border-color:#EFC9BD;color:#8A3520}
+.wx-band .h{display:block;font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:600;margin-bottom:4px}
+.wx-band b{font-family:'JetBrains Mono',monospace;font-weight:700}
+.wx-bars{display:flex;align-items:flex-end;gap:2px;height:70px;margin:4px 0 6px;border-bottom:1px solid var(--line);padding-bottom:1px}
+.wx-bars .b{flex:1;background:#DDE8E7;border-radius:3px 3px 0 0;min-height:2px}
+.wx-bars .b.has{background:#7CA9AE}
+.wx-bars .b.mid{background:var(--gold)}
+.wx-bars .b.hi{background:var(--warn)}
+.wx-bars .b.now{outline:2px solid var(--teal-deep);outline-offset:1px}
+.wx-bars .b.fut{opacity:.65}
+.wx-axis{display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink-soft)}
+.wx-now{display:flex;align-items:center;gap:16px}
+.wx-now .ico{font-size:38px;line-height:1}
+.wx-now .big{font-family:'Barlow Condensed',sans-serif;font-size:46px;font-weight:700;color:var(--teal-deep);line-height:1}
+.wx-now .txt{font-size:13px;color:var(--ink-soft);line-height:1.4}
+.wx-day{display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid var(--line);font-size:13px}
+.wx-day:last-child{border-bottom:none}
+.wx-day .dn{flex:1;font-weight:600}
+.wx-day .mm{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--teal-deep);min-width:64px;text-align:right}
+.wx-day .tt{font-family:'JetBrains Mono',monospace;color:var(--ink-soft);min-width:76px;text-align:right}
+</style>
+</head>
+<body>
+
+<!-- ============ LIST VIEW ============ -->
+<div id="viewList">
+  <header class="top">
+    <div class="hrow">
+      <div>
+        <p class="eyebrow">Regenbogenforelle · Aller Aqua</p>
+        <h1>Meine Teiche</h1>
+      </div>
+      <div class="wx-chip dead" id="wxChipList"><span class="ic">·</span><span class="tp">–</span><span class="dot"></span></div>
+    </div>
+    <p class="sub" id="listSummary"></p>
+  </header>
+  <div class="wrap">
+    <div id="storageBanner" class="banner"></div>
+    <div id="pondList"></div>
+    <button class="btn ghost" id="newPondBtn">+ Neuen Teich anlegen</button>
+
+    <button class="btn ghost" id="recordsBtn" style="margin-top:10px">Nachweise &amp; Betriebstagebuch</button>
+
+    <div class="card" style="margin-top:18px" data-fold="betrieb">
+      <h2>Betriebsdaten</h2>
+      <div class="hint" style="margin-bottom:12px">Kopf der amtlichen Vordrucke — wird in jede Liste übernommen.</div>
+      <div class="field">
+        <label>Name des Betreibers</label>
+        <input type="text" id="farmName" placeholder="Vor- und Nachname">
+      </div>
+      <div class="field">
+        <label>Anschrift des Betriebs</label>
+        <input type="text" id="farmAddr" placeholder="Straße, PLZ Ort">
+      </div>
+      <div id="siteFields"></div>
+      <button class="btn" id="saveFarmBtn">Betriebsdaten speichern</button>
+    </div>
+
+    <div class="card" style="margin-top:18px" data-fold="sicherung">
+      <h2>Datensicherung</h2>
+      <div class="hint" style="margin-bottom:12px">Der Text unten ist immer der aktuelle Stand. Lade ihn als Datei herunter oder kopiere ihn — damit stellst du alles jederzeit wieder her, auch in einer neuen Version der App.</div>
+      <textarea id="backupBox" rows="4"></textarea>
+      <div class="btn-row" style="margin-top:10px">
+        <button class="btn" id="downloadBtn">Als Datei sichern</button>
+        <button class="btn ghost" id="importBtn">Text einlesen</button>
+      </div>
+      <div style="margin-top:10px">
+        <label for="fileInput">Sicherungsdatei laden</label>
+        <input type="file" id="fileInput" accept=".json,.txt" style="font-size:13px">
+      </div>
+    </div>
+
+    <footer class="note">Werte nach Fütterungsempfehlung Aller Aqua, 22/03/2024.</footer>
+  </div>
+</div>
+
+<!-- ============ DETAIL VIEW ============ -->
+<div id="viewDetail" class="hidden">
+  <header class="top">
+    <div class="hrow">
+      <div class="backlink" id="backBtn">← Alle Teiche</div>
+      <div class="wx-chip dead" id="wxChipDetail"><span class="ic">·</span><span class="tp">–</span><span class="dot"></span></div>
+    </div>
+    <h1 id="detailName">Teich</h1>
+    <p class="sub" id="detailSub"></p>
+  </header>
+  <div class="wrap">
+
+    <div class="result">
+      <div class="rl">Empfohlene Tagesration</div>
+      <div class="big" id="dailyKg">–<span> kg</span></div>
+      <div class="rs" id="dailyPct"></div>
+      <div class="rgrid">
+        <div><div class="k">Korngröße</div><div class="v" id="pelletSize">–</div></div>
+        <div><div class="k">Bestand</div><div class="v" id="biomassNow">–</div></div>
+      </div>
+    </div>
+
+    <div id="rationNotice"></div>
+
+    <div class="btn-row" style="margin-bottom:16px">
+      <button class="btn big-feed" id="feedBtn">✓ Gefüttert</button>
+      <button class="btn ghost" id="noFeedBtn" style="flex:0 0 42%">Heute kein Futter</button>
+    </div>
+    <div class="hint" style="text-align:center;margin:0 0 16px" id="feedStatus"></div>
+
+    <div class="card" data-fold="menge">
+      <h2>Futtermenge</h2>
+      <label class="chk"><input type="checkbox" id="manualChk">
+        <span>Eigene Menge füttern
+        <span style="color:var(--ink-soft);display:block;margin-top:3px;font-weight:400">Statt der Tabellen-Empfehlung wird deine tatsächliche Menge gebucht und daraus der Zuwachs gerechnet.</span></span></label>
+      <div id="manualBox" class="hidden">
+        <div class="field" style="margin-top:12px">
+          <label>Tatsächliche Tagesmenge (kg)</label>
+          <input type="number" id="manualKg" step="0.005" min="0" inputmode="decimal" placeholder="0,200">
+        </div>
+        <div id="manualOut"></div>
+      </div>
+    </div>
+
+    <div class="card" data-fold="woche">
+      <h2>Diese Woche</h2>
+      <div id="weekOut"></div>
+      <div class="field" style="margin-top:14px;margin-bottom:0">
+        <label>Ration anpassen</label>
+        <div class="feed-pills">
+          <div class="pill mode" data-mode="weekly"><b>Wöchentlich</b>Montags neu, sonst fest</div>
+          <div class="pill mode" data-mode="daily"><b>Täglich</b>Rechnet jeden Tag neu</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" data-fold="abgang">
+      <h2>Zu- und Abgänge</h2>
+      <div class="feed-pills four" id="outKindPills">
+        <div class="pill sale active" data-kind="sale"><b>Abgang</b>Verkauf / Abgabe</div>
+        <div class="pill loss" data-kind="loss"><b>Verlust</b>Sterblichkeit</div>
+        <div class="pill move" data-kind="move"><b>Umsetzen</b>In anderen Teich</div>
+        <div class="pill inn" data-kind="in"><b>Zugang</b>Zukauf / Einsatz</div>
+      </div>
+      <div class="field hidden" id="outTargetField" style="margin-top:14px">
+        <label>Zielteich</label>
+        <select id="outTarget"></select>
+      </div>
+      <div class="hidden" id="newTargetBox">
+        <div class="arrowbox">
+          <h3>Neuer Teich als Ziel</h3>
+          <div class="field">
+            <label>Name</label>
+            <input type="text" id="ntName" placeholder="z.B. Mastteich 1">
+          </div>
+          <div class="field">
+            <label>Anlage / Standort</label>
+            <input type="text" id="ntSite" list="siteList" placeholder="z.B. Mastanlage">
+          </div>
+          <div class="row2">
+            <div class="field">
+              <label>Futterart</label>
+              <select id="ntFeed"></select>
+            </div>
+            <div class="field">
+              <label>Wassertemperatur (°C)</label>
+              <input type="number" id="ntTemp" step="0.5" min="2" max="18" inputmode="decimal" placeholder="10">
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="row2" style="margin-top:14px">
+        <div class="field">
+          <label>Stückzahl</label>
+          <input type="number" id="outPcs" step="1" min="1" inputmode="numeric" placeholder="200">
+        </div>
+        <div class="field">
+          <label id="outKgLabel">Gesamtgewicht (kg)</label>
+          <input type="number" id="outKg" step="0.1" min="0" inputmode="decimal" placeholder="88,5">
+        </div>
+      </div>
+      <div class="field hidden" id="outReasonField">
+        <label>Ursache / Anzeichen</label>
+        <select id="outReason">
+          <option>Krankheit</option>
+          <option>Prädator (Reiher, Otter, Kormoran)</option>
+          <option>Sauerstoffmangel</option>
+          <option>Hochwasser / Technik</option>
+          <option>Unbekannt</option>
+        </select>
+      </div>
+      <div class="field hidden" id="outMeasureField">
+        <label>Eingeleitete Maßnahme</label>
+        <input type="text" id="outMeasure" placeholder="z.B. Zulauf erhöht, Tierarzt verständigt">
+      </div>
+      <label class="chk hidden" id="outHighField"><input type="checkbox" id="outHigh">
+        <span>Erhöhte Sterblichkeit
+        <span style="color:var(--ink-soft);display:block;margin-top:3px;font-weight:400">Nur ankreuzen, wenn der Ausfall auffällig über dem Normalen liegt — nur diese Fälle gehören ins Blatt „Erhöhte Sterblichkeit“.</span></span></label>
+      <div class="field hidden" id="outPartyField">
+        <label id="outPartyLabel">Empfänger</label>
+        <input type="text" id="outParty" placeholder="Name">
+      </div>
+      <div class="field hidden" id="outAddrField">
+        <label id="outAddrLabel">Anschrift des Empfängers</label>
+        <input type="text" id="outAddr" placeholder="Straße, PLZ Ort">
+      </div>
+      <div class="field hidden" id="outTransField">
+        <label>Transporteur (Name, Anschrift)</label>
+        <input type="text" id="outTrans" placeholder="leer lassen = Selbstabholung">
+      </div>
+      <div class="field">
+        <label>Bemerkung (optional)</label>
+        <input type="text" id="outNote" placeholder="z.B. Setzlinge vorsortiert">
+      </div>
+      <div id="outPreview"></div>
+      <button class="btn" id="outBookBtn">Abgang buchen</button>
+    </div>
+
+    <div class="card" data-fold="mast">
+      <h2>Mastplanung</h2>
+      <div class="field">
+        <label>Zielgewicht pro Fisch (g)</label>
+        <input type="number" id="targetG" step="10" min="1" placeholder="z.B. 450 (Schlachtgewicht)">
+      </div>
+      <div id="prognosisOut"></div>
+    </div>
+
+    <div class="card" data-fold="vergleich">
+      <h2>Futtervergleich zum Ziel</h2>
+      <div id="compareOut"><div class="hint">Zielgewicht oben eingeben.</div></div>
+    </div>
+
+    <div class="card" data-fold="temp">
+      <h2>Wassertemperatur</h2>
+      <div class="temp-readout"><span class="val"><span id="tempVal">10</span> °C</span></div>
+      <input type="range" id="tempSlider" min="2" max="18" value="10" step="0.5">
+      <div class="hint">Tabellenbereich 2–18 °C</div>
+    </div>
+
+    <div class="card" data-fold="futterart">
+      <h2>Futterart</h2>
+      <div class="feed-pills" id="feedPills"></div>
+      <div class="hint" id="feedHint" style="margin-top:10px"></div>
+    </div>
+
+    <div class="card" data-fold="bestand">
+      <h2>Bestand korrigieren</h2>
+      <div class="hint" style="margin-bottom:12px">Trag die zwei Werte ein, die du sicher weißt — den dritten rechnet die App aus.</div>
+      <div class="row2">
+        <div class="field">
+          <label>Stückzahl</label>
+          <input type="number" id="editCount" step="1" min="0" inputmode="numeric">
+        </div>
+        <div class="field">
+          <label>Ø-Gewicht / Fisch (g)</label>
+          <input type="number" id="editAvg" step="0.1" min="0" inputmode="decimal">
+        </div>
+      </div>
+      <div class="field">
+        <label>Gesamtgewicht (kg)</label>
+        <input type="number" id="editTotal" step="0.1" min="0" inputmode="decimal">
+      </div>
+      <div class="hint" id="stockCalcHint" style="margin:-8px 0 14px"></div>
+      <div class="field">
+        <label>Erwarteter Futterquotient</label>
+        <input type="number" id="editFcr" step="0.05" min="0.3" max="2">
+        <div class="hint">kg Futter je kg Zuwachs. Bestimmt, wie viel Zuwachs pro Fütterung addiert wird.</div>
+      </div>
+      <div class="field">
+        <label>Anlage / Standort</label>
+        <input type="text" id="editSite" list="siteList" placeholder="z.B. Brutanlage">
+      </div>
+      <div class="row2">
+        <div class="field">
+          <label>Wassertierart</label>
+          <select id="editSpecies"></select>
+        </div>
+        <div class="field">
+          <label>Art der Einheit</label>
+          <select id="editUnit"></select>
+        </div>
+      </div>
+      <button class="btn" id="saveStockBtn">Bestand übernehmen</button>
+      <div class="hint" id="stockHint" style="margin-top:8px"></div>
+    </div>
+
+    <div class="card" data-fold="verlauf">
+      <h2>Verlauf</h2>
+      <div id="chartWrap"></div>
+    </div>
+
+    <div class="card" data-fold="abgangsbuch">
+      <h2>Abgangsbuch</h2>
+      <div id="outWrap"></div>
+    </div>
+
+    <div class="card" data-fold="protokoll">
+      <h2>Fütterungsprotokoll</h2>
+      <div id="histWrap"></div>
+    </div>
+
+    <div class="card" data-fold="verwalten">
+      <h2>Teich verwalten</h2>
+      <div class="field">
+        <label>Name</label>
+        <input type="text" id="editName">
+      </div>
+      <div class="btn-row">
+        <button class="btn ghost" id="renameBtn">Namen speichern</button>
+        <button class="btn danger" id="deletePondBtn">Teich löschen</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ NACHWEISE VIEW ============ -->
+<div id="viewRecords" class="hidden">
+  <header class="top">
+    <div class="backlink" id="backBtn3">← Alle Teiche</div>
+    <h1>Nachweise</h1>
+    <p class="sub" id="recSub"></p>
+  </header>
+  <div class="wrap">
+    <div class="card" data-fold="zeitraum">
+      <h2>Zeitraum</h2>
+      <div class="row2">
+        <div class="field">
+          <label>Von</label>
+          <input type="date" id="recFrom">
+        </div>
+        <div class="field">
+          <label>Bis</label>
+          <input type="date" id="recTo">
+        </div>
+      </div>
+      <div class="hint">Leer lassen = alles. Für die Vorlage nach Anlage 11 wird das Kalenderjahr geführt.</div>
+    </div>
+
+    <div class="card" data-fold="recAb">
+      <h2>Abgänge</h2>
+      <div class="hint" style="margin-bottom:12px">Muster AH-TS-055-V02, Blatt 1 · Art. 188 VO (EU) 2016/429</div>
+      <div id="recOut"></div>
+      <button class="btn ghost" id="csvOutBtn" style="margin-top:12px">Als CSV exportieren</button>
+    </div>
+
+    <div class="card" data-fold="recMort">
+      <h2>Erhöhte Sterblichkeit</h2>
+      <div class="hint" style="margin-bottom:12px">Muster AH-TS-055-V02, Blatt 2</div>
+      <div id="recMort"></div>
+      <button class="btn ghost" id="csvMortBtn" style="margin-top:12px">Als CSV exportieren</button>
+    </div>
+
+    <div class="card" data-fold="recZu">
+      <h2>Zugänge</h2>
+      <div class="hint" style="margin-bottom:12px">Muster AH-TS-055-V02, Blatt 3</div>
+      <div id="recIn"></div>
+      <button class="btn ghost" id="csvInBtn" style="margin-top:12px">Als CSV exportieren</button>
+    </div>
+
+    <div class="card" data-fold="recTb">
+      <h2>Betriebstagebuch</h2>
+      <div class="hint" style="margin-bottom:12px">Anlage 11 · Forellenteichanlagen (Bayern)</div>
+      <div id="recDiary"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ NEW POND VIEW ============ -->
+<div id="viewNew" class="hidden">
+  <header class="top">
+    <div class="backlink" id="backBtn2">← Abbrechen</div>
+    <h1>Neuer Teich</h1>
+  </header>
+  <div class="wrap">
+    <div class="card">
+      <div class="field">
+        <label>Name / Bezeichnung</label>
+        <input type="text" id="newName" placeholder="z.B. Teich 3 — Setzlinge">
+      </div>
+      <div class="field">
+        <label>Anlage / Standort</label>
+        <input type="text" id="newSite" list="siteList" placeholder="z.B. Mastanlage">
+        <datalist id="siteList"></datalist>
+      </div>
+      <div class="row2">
+        <div class="field">
+          <label>Wassertierart</label>
+          <select id="newSpecies"></select>
+        </div>
+        <div class="field">
+          <label>Art der Einheit</label>
+          <select id="newUnit"></select>
+        </div>
+      </div>
+      <div class="row2">
+        <div class="field">
+          <label>Gesamtgewicht (kg)</label>
+          <input type="number" id="newTotal" step="0.1" min="0" placeholder="23">
+        </div>
+        <div class="field">
+          <label>Ø-Gewicht / Fisch (g)</label>
+          <input type="number" id="newAvg" step="0.1" min="0" placeholder="7">
+        </div>
+      </div>
+      <div class="field">
+        <label>Futterart</label>
+        <div class="feed-pills" id="newFeedPills"></div>
+      </div>
+      <div class="field">
+        <label>Wassertemperatur</label>
+        <div class="temp-readout"><span class="val"><span id="newTempVal">10</span> °C</span></div>
+        <input type="range" id="newTemp" min="2" max="18" value="10" step="0.5">
+      </div>
+      <button class="btn" id="createPondBtn">Teich anlegen</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- ============ WETTER ============ -->
+<div id="viewWeather" class="hidden">
+  <header class="top">
+    <div class="backlink" id="wxBackBtn">← Zurück</div>
+    <h1>Wetter &amp; Wasser</h1>
+    <p class="sub">Kirchzell · Ottorfszell · Zittenfelden</p>
+  </header>
+  <div class="wrap">
+    <div id="wxAlerts"></div>
+    <div id="wxArrival"></div>
+
+    <div class="card">
+      <h2>Jetzt</h2>
+      <div id="wxNow"><div class="empty">Wird geladen …</div></div>
+    </div>
+
+    <div class="card">
+      <h2>Niederschlag je Stunde</h2>
+      <div id="wxChart"><div class="empty">Wird geladen …</div></div>
+    </div>
+
+    <div class="card">
+      <h2>Nächste Tage</h2>
+      <div id="wxDays"><div class="empty">Wird geladen …</div></div>
+    </div>
+
+    <div class="card" data-fold="wxset">
+      <h2>Verzögerung im Berg</h2>
+      <div class="hint" style="margin-bottom:12px">Wie viele Stunden nach dem Regen die Trübung in der Anlage ankommt. Damit wird oben das Ankunftsfenster gerechnet.</div>
+      <div id="wxDelayFields"></div>
+      <button class="btn" id="wxSaveDelay">Verzögerung speichern</button>
+    </div>
+
+    <footer class="note" id="wxSource">Daten vom Deutschen Wetterdienst.</footer>
+  </div>
+</div>
+
+<script>
+const TEMPS=[2,4,6,8,10,12,14,16,18];
+const PRODUCTS={
+  gold:{name:"Aller Gold",type:"Mastfutter",cls:"gold",defFcr:0.9,classes:[
+    {min:40,max:100,mm:"3 mm",vals:[0.53,0.63,0.79,0.92,1.18,1.45,1.55,1.61,1.53]},
+    {min:100,max:200,mm:"4.5 mm",vals:[0.46,0.55,0.69,0.80,1.03,1.26,1.35,1.40,1.33]},
+    {min:200,max:400,mm:"4.5 mm",vals:[0.41,0.48,0.61,0.70,0.90,1.11,1.19,1.24,1.17]},
+    {min:400,max:600,mm:"6 mm",vals:[0.35,0.42,0.52,0.61,0.78,0.96,1.02,1.07,1.01]},
+    {min:600,max:800,mm:"6 mm",vals:[0.31,0.37,0.46,0.53,0.68,0.84,0.90,0.94,0.89]},
+    {min:800,max:1000,mm:"6 mm",vals:[0.27,0.32,0.40,0.47,0.60,0.74,0.79,0.82,0.78]},
+    {min:1000,max:999999,mm:"8 mm",vals:[0.24,0.28,0.36,0.41,0.53,0.65,0.70,0.73,0.69]}]},
+  silver:{name:"Aller Silver",type:"Mastfutter",cls:"silver",defFcr:1.0,classes:[
+    {min:40,max:100,mm:"3 mm",vals:[0.59,0.70,0.88,1.02,1.31,1.61,1.72,1.79,1.70]},
+    {min:100,max:200,mm:"4.5 mm",vals:[0.51,0.60,0.76,0.88,1.13,1.40,1.49,1.55,1.47]},
+    {min:200,max:400,mm:"4.5 mm",vals:[0.45,0.53,0.67,0.78,1.00,1.23,1.31,1.37,1.30]},
+    {min:400,max:600,mm:"6 mm",vals:[0.39,0.46,0.57,0.67,0.86,1.05,1.13,1.17,1.11]},
+    {min:600,max:800,mm:"6 mm",vals:[0.34,0.40,0.51,0.59,0.75,0.93,0.99,1.03,0.98]},
+    {min:800,max:1000,mm:"6 mm",vals:[0.30,0.35,0.44,0.52,0.66,0.82,0.87,0.91,0.86]},
+    {min:1000,max:999999,mm:"8 mm",vals:[0.26,0.31,0.39,0.46,0.58,0.72,0.77,0.80,0.76]}]},
+  futura2:{name:"Aller Futura 2mm",type:"Aufzuchtfutter",cls:"futura2",defFcr:0.8,classes:[
+    {min:15,max:25,mm:"2 mm",vals:[0.56,0.75,0.94,1.13,1.41,1.69,1.81,1.88,1.77]},
+    {min:25,max:40,mm:"2 mm",vals:[0.51,0.68,0.85,1.02,1.27,1.52,1.62,1.69,1.59]}]},
+  brut:{name:"Futura EX GR",type:"Brutfutter",cls:"brut",defFcr:0.6,classes:[
+    {min:0.5,max:2.0,mm:"0.5–1.0 mm",vals:[0.99,1.32,1.64,1.97,2.47,2.96,3.16,3.29,3.09]},
+    {min:2.0,max:7.0,mm:"0.9–1.6 mm",vals:[0.84,1.12,1.40,1.68,2.10,2.52,2.68,2.80,2.63]},
+    {min:7.0,max:15.0,mm:"1.3–2.0 mm",vals:[0.70,0.94,1.17,1.41,1.76,2.11,2.25,2.34,2.20]}]}
+};
+
+const SEED=[{"id":"mt39vpeq","name":"Teich 1 Saibling","totalKg":30,"avgG":9,"count":3333,"feed":"futura2","temp":12,"fcr":0.8,"history":[]}];
+const KEY='fischzucht-teiche-v1';
+let ponds=[]; let currentId=null; let newFeed='gold';
+
+function fmt(n,d){return Number(n).toLocaleString('de-DE',{minimumFractionDigits:d,maximumFractionDigits:d})}
+function today(){return new Date().toISOString().slice(0,10)}
+function deDate(iso){const[a,b,c]=iso.split('-');return `${c}.${b}.${a}`}
+
+function interpTemp(vals,t){
+  t=Math.max(2,Math.min(18,t));
+  for(let i=0;i<TEMPS.length-1;i++){
+    if(t>=TEMPS[i]&&t<=TEMPS[i+1]){
+      const f=(t-TEMPS[i])/(TEMPS[i+1]-TEMPS[i]);
+      return vals[i]+f*(vals[i+1]-vals[i]);
+    }
+  }
+  return vals[vals.length-1];
+}
+function pickClass(p,g){
+  for(const c of p.classes){if(g>=c.min&&g<=c.max)return c}
+  return g<p.classes[0].min?p.classes[0]:p.classes[p.classes.length-1];
+}
+/* ---------- Wochenration ---------- */
+function mondayOf(iso){
+  const d=new Date(iso+'T12:00:00');
+  const wd=(d.getDay()+6)%7; // Mo=0
+  d.setDate(d.getDate()-wd);
+  return d.toISOString().slice(0,10);
+}
+function ratioDue(pond){
+  if(pond.rationMode==='daily') return false;
+  if(!pond.ration) return true;
+  return mondayOf(today())>mondayOf(pond.ration.since);
+}
+function recalcRation(pond){
+  const d=dailyFor(pond);
+  pond.ration={kg:d.kg,per100:d.per100,mm:d.cls.mm,
+    bio:pond.totalKg,avg:pond.avgG,since:today()};
+  return pond.ration;
+}
+function manualOn(pond){return !!(pond.manualOn && pond.manualKg>0)}
+function activeRation(pond){
+  const d=dailyFor(pond);
+  if(manualOn(pond)){
+    return {kg:pond.manualKg,
+      per100:pond.totalKg>0?pond.manualKg/pond.totalKg*100:0,
+      cls:d.cls,product:d.product,manual:true,rec:d.kg,recPer100:d.per100};
+  }
+  if(pond.rationMode==='daily') return d;
+  if(!pond.ration) recalcRation(pond);
+  return {kg:pond.ration.kg,per100:pond.ration.per100,
+          cls:d.cls,product:d.product,fixed:true,since:pond.ration.since};
+}
+/* Fütterungseinträge (alte Einträge ohne type zählen als Fütterung) */
+function feedLog(pond){return (pond.history||[]).filter(h=>!h.type||h.type==='feed')}
+function outLog(pond){return (pond.history||[]).filter(h=>h.type==='sale'||h.type==='loss'||h.type==='move'||h.type==='movein'||h.type==='in')}
+function stockCount(pond){return pond.avgG>0?Math.round(pond.totalKg*1000/pond.avgG):0}
+
+function weekStats(pond){
+  const mo=mondayOf(today());
+  const inWeek=feedLog(pond).filter(h=>h.date>=mo);
+  const outWeek=outLog(pond).filter(h=>h.date>=mo);
+  return {
+    feed:inWeek.reduce((s,h)=>s+h.feed,0),
+    gain:inWeek.reduce((s,h)=>s+h.gain,0),
+    days:inWeek.filter(h=>!h.skip).length,
+    skips:inWeek.filter(h=>h.skip).length,
+    soldPcs:outWeek.filter(h=>h.type==='sale').reduce((s,h)=>s+h.pcs,0),
+    lostPcs:outWeek.filter(h=>h.type==='loss').reduce((s,h)=>s+h.pcs,0)
+  };
+}
+
+function dailyFor(pond){
+  const p=PRODUCTS[pond.feed];
+  const c=pickClass(p,pond.avgG);
+  const per100=interpTemp(c.vals,pond.temp);
+  return {kg:(per100/100)*pond.totalKg,per100,cls:c,product:p};
+}
+function fedToday(pond){
+  const f=feedLog(pond);
+  return f.length>0 && f[f.length-1].date===today();
+}
+
+function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2400)}
+
+let storageOK=null;
+
+function setBanner(ok,msg){
+  const b=document.getElementById('storageBanner');
+  b.className='banner '+(ok?'ok':'bad');
+  b.textContent=msg;
+}
+
+async function save(){
+  refreshBackupBox();
+  try{
+    localStorage.setItem(KEY,JSON.stringify({v:2,ponds,farm}));
+    storageOK=true;
+    setBanner(true,'✓ Gespeichert — bleibt auf diesem Gerät erhalten.');
+    return true;
+  }catch(e){
+    storageOK=false;
+    setBanner(false,'⚠ Speichern nicht möglich ('+(e&&e.message?e.message:'unbekannt')+'). Bitte Sicherungsdatei nutzen.');
+    return false;
+  }
+}
+
+async function load(){
+  renderList();
+  try{
+    const raw=localStorage.getItem(KEY);
+    if(raw){
+      const data=JSON.parse(raw);
+      if(Array.isArray(data)) ponds=data;
+      else if(data&&Array.isArray(data.ponds)){
+        ponds=data.ponds;
+        farm={betreiber:'',anschrift:'',sites:{},...(data.farm||{})};
+        if(!farm.sites) farm.sites={};
+      }
+    } else {
+      ponds=SEED.slice();
+      localStorage.setItem(KEY,JSON.stringify({v:2,ponds,farm}));
+    }
+    storageOK=true;
+    setBanner(true, ponds.length>0
+      ? `✓ ${ponds.length} Teich${ponds.length===1?'':'e'} geladen.`
+      : '✓ Speicher bereit. Angelegte Teiche bleiben erhalten.');
+  }catch(e){
+    storageOK=false;
+    setBanner(false,'⚠ Speicher nicht verfügbar. Bitte Sicherungsdatei nutzen.');
+  }
+  renderList();
+  renderFarm();
+  refreshBackupBox();
+}
+
+/* ---------- views ---------- */
+function show(v){
+  ['viewList','viewDetail','viewNew','viewRecords','viewWeather'].forEach(id=>document.getElementById(id).classList.add('hidden'));
+  document.getElementById(v).classList.remove('hidden');
+  window.scrollTo(0,0);
+}
+
+const NOSITE='Ohne Zuordnung';
+function siteOf(p){return (p.site&&p.site.trim())?p.site.trim():NOSITE}
+function allSites(){
+  const s=[...new Set(ponds.map(siteOf).filter(x=>x!==NOSITE))];
+  ['Brutanlage','Mastanlage','Teichanlage'].forEach(d=>{if(!s.includes(d))s.push(d)});
+  return s;
+}
+function refreshSiteList(){
+  document.getElementById('siteList').innerHTML=
+    allSites().map(s=>`<option value="${s}">`).join('');
+}
+
+function renderList(){
+  const wrap=document.getElementById('pondList');
+  const sum=document.getElementById('listSummary');
+  if(ponds.length===0){
+    wrap.innerHTML='<div class="empty">Noch kein Teich angelegt. Leg unten deinen ersten an.</div>';
+    sum.textContent='';
+    return;
+  }
+  const totalBio=ponds.reduce((s,p)=>s+p.totalKg,0);
+  const totalFeed=ponds.reduce((s,p)=>s+activeRation(p).kg,0);
+  const open=ponds.filter(p=>!fedToday(p)).length;
+  sum.textContent=`${ponds.length} Teiche · ${fmt(totalBio,1)} kg Bestand · ${fmt(totalFeed,2)} kg Futter heute`
+    + (open>0?` · ${open} noch offen`:' · alle gefüttert');
+
+  const card=p=>{
+    const d=activeRation(p);
+    const fed=fedToday(p);
+    return `<div class="pond ${PRODUCTS[p.feed].cls}" data-id="${p.id}">
+      <div class="fed-badge ${fed?'':'open'}">${fed?'gefüttert':'offen'}</div>
+      <div class="pname">${p.name}</div>
+      <div class="pmeta">${speciesOf(p)} · ${PRODUCTS[p.feed].name} · ${fmt(p.temp,1)} °C</div>
+      <div class="pstats">
+        <div><span>Bestand</span>${fmt(p.totalKg,1)} kg</div>
+        <div><span>Ø Fisch</span>${fmt(p.avgG,1)} g</div>
+        <div><span>Heute</span>${fmt(d.kg,d.kg<10?3:2)} kg</div>
+      </div>
+    </div>`;
+  };
+
+  const sites=[...new Set(ponds.map(siteOf))];
+  if(sites.length<=1){
+    wrap.innerHTML=ponds.map(card).join('');
+  } else {
+    wrap.innerHTML=sites.map(s=>{
+      const grp=ponds.filter(p=>siteOf(p)===s);
+      const bio=grp.reduce((a,p)=>a+p.totalKg,0);
+      const fd=grp.reduce((a,p)=>a+activeRation(p).kg,0);
+      return `<div class="sitehead"><h2>${s}</h2>
+        <span>${grp.length} Teiche · ${fmt(bio,1)} kg · ${fmt(fd,2)} kg Futter</span></div>`
+        + grp.map(card).join('');
+    }).join('');
+  }
+
+  wrap.querySelectorAll('.pond').forEach(el=>{
+    el.addEventListener('click',()=>openPond(el.dataset.id));
+  });
+}
+
+function openPond(id){
+  currentId=id;
+  const p=ponds.find(x=>x.id===id);
+  if(!p)return;
+  document.getElementById('detailName').textContent=p.name;
+  document.getElementById('tempSlider').value=p.temp;
+  document.getElementById('editTotal').value=p.totalKg;
+  document.getElementById('editAvg').value=p.avgG;
+  document.getElementById('editCount').value=p.count||stockCount(p);
+  stockOrder=['count','avg','total'];
+  document.getElementById('stockCalcHint').textContent='';
+  document.getElementById('editFcr').value=p.fcr;
+  document.getElementById('editSite').value=p.site||'';
+  fillSelect('editSpecies',SPECIES,speciesOf(p));
+  fillSelect('editUnit',UNITS,unitOf(p));
+  refreshSiteList();
+  document.getElementById('editName').value=p.name;
+  document.getElementById('targetG').value=p.targetG||'';
+  document.getElementById('manualKg').value=p.manualKg||'';
+  renderFeedPills(p.feed);
+  renderDetail();
+  show('viewDetail');
+}
+
+function renderFeedPills(active){
+  const w=document.getElementById('feedPills');
+  w.innerHTML=Object.entries(PRODUCTS).map(([k,p])=>
+    `<div class="pill ${p.cls} ${k===active?'active':''}" data-key="${k}"><b>${p.name}</b>${p.type}</div>`).join('');
+  w.querySelectorAll('.pill').forEach(el=>{
+    el.addEventListener('click',async()=>{
+      const p=ponds.find(x=>x.id===currentId);
+      p.feed=el.dataset.key;
+      p.fcr=PRODUCTS[p.feed].defFcr;
+      document.getElementById('editFcr').value=p.fcr;
+      renderFeedPills(p.feed);
+      renderDetail();
+      await save();
+    });
+  });
+}
+
+function renderDetail(){
+  const p=ponds.find(x=>x.id===currentId);
+  if(!p)return;
+  const d=activeRation(p);
+  const count=p.avgG>0?Math.round(p.totalKg*1000/p.avgG):0;
+
+  // Modus-Pills
+  document.querySelectorAll('.pill.mode').forEach(el=>{
+    el.classList.toggle('active',(p.rationMode||'weekly')===el.dataset.mode);
+    el.classList.toggle('futura2',true);
+  });
+
+  // Hinweis auf fällige Wochenanpassung
+  const notice=document.getElementById('rationNotice');
+  if(ratioDue(p)&&!manualOn(p)){
+    const nd=dailyFor(p);
+    const diff=nd.kg-(p.ration?p.ration.kg:nd.kg);
+    notice.innerHTML=`<div class="notice">
+      <b>Neue Wochenration fällig</b><br>
+      Nach dem Zuwachs der letzten Woche wären es jetzt ${fmt(nd.kg,nd.kg<10?3:2)} kg pro Tag
+      ${p.ration?`(bisher ${fmt(p.ration.kg,p.ration.kg<10?3:2)} kg, ${diff>=0?'+':''}${fmt(diff,3)} kg)`:''}.
+      <button class="btn" id="applyRationBtn" style="margin-top:10px">Ration für diese Woche übernehmen</button>
+    </div>`;
+    document.getElementById('applyRationBtn').addEventListener('click',async()=>{
+      recalcRation(p);
+      renderDetail();
+      await save();
+      toast('Wochenration aktualisiert.');
+    });
+  } else notice.innerHTML='';
+
+  // Wochenübersicht
+  const ws=weekStats(p);
+  document.getElementById('weekOut').innerHTML=`
+    <div class="pgrid">
+      <div><span>Gefüttert</span>${ws.days} ${ws.days===1?'Tag':'Tage'}</div>
+      <div><span>Fastentage</span>${ws.skips}</div>
+      <div><span>Futter</span>${fmt(ws.feed,2)} kg</div>
+      <div><span>Zuwachs</span>${fmt(ws.gain,2)} kg</div>
+    </div>
+    ${(ws.soldPcs>0||ws.lostPcs>0)?`<div class="hint" style="margin-top:8px">Diese Woche abgegeben: ${ws.soldPcs.toLocaleString('de-DE')} Stück verkauft · ${ws.lostPcs.toLocaleString('de-DE')} Stück Verlust</div>`:''}
+    <div class="hint" style="margin-top:10px">${
+      manualOn(p)
+      ? `Du fütterst eine feste eigene Menge von ${fmt(p.manualKg,3)} kg pro Tag. Die Wochenanpassung ist dabei ausgesetzt.`
+      : (p.rationMode==='daily')
+      ? 'Die Ration wird täglich neu aus dem aktuellen Bestand berechnet.'
+      : (p.ration?`Ration gilt seit ${deDate(p.ration.since)}, berechnet auf ${fmt(p.ration.bio,1)} kg Bestand. Nächste Anpassung am Montag.`:'Ration wird beim ersten Füttern festgelegt.')
+    }</div>`;
+
+  document.getElementById('detailSub').textContent=
+    (siteOf(p)!==NOSITE?siteOf(p)+' · ':'')
+    +`${PRODUCTS[p.feed].name} · ≈ ${count.toLocaleString('de-DE')} Fische`;
+  document.getElementById('tempVal').textContent=fmt(p.temp,1);
+  document.getElementById('dailyKg').innerHTML=`${fmt(d.kg,d.kg<10?3:2)}<span> kg</span>`;
+  document.getElementById('dailyPct').textContent=
+    d.manual
+    ? `Deine Menge · Empfehlung wären ${fmt(d.rec,d.rec<10?3:2)} kg (${fmt(d.recPer100,2)} kg je 100 kg)`
+    : d.fixed
+    ? `Feste Wochenration · ${fmt(d.per100,2)} kg je 100 kg bei Festlegung`
+    : `${fmt(d.per100,2)} kg je 100 kg Fisch bei ${fmt(p.temp,1)} °C`;
+  document.getElementById('pelletSize').textContent=d.cls.mm;
+  document.getElementById('biomassNow').textContent=fmt(p.totalKg,1)+' kg';
+  const below = p.avgG < d.cls.min, above = p.avgG > d.cls.max;
+  document.getElementById('feedHint').innerHTML =
+    `Gewichtsklasse ${d.cls.min}–${d.cls.max===999999?'∞':d.cls.max} g → Korngröße ${d.cls.mm}`
+    + (below?`<br><b>Hinweis:</b> ${fmt(p.avgG,1)} g liegt unter der Tabelle — gerechnet mit der niedrigsten Zeile.`:'')
+    + (above?`<br><b>Hinweis:</b> ${fmt(p.avgG,1)} g liegt über der Tabelle — gerechnet mit der höchsten Zeile.`:'');
+
+  const fed=fedToday(p);
+  const fl=feedLog(p);
+  const last=fl.length?fl[fl.length-1]:null;
+  const skippedToday=last&&last.date===today()&&last.skip;
+  const btn=document.getElementById('feedBtn');
+  btn.classList.toggle('done',fed&&!skippedToday);
+  btn.textContent=(fed&&!skippedToday)?'✓ Bereits gefüttert':`✓ ${fmt(d.kg,d.kg<10?3:2)} kg gefüttert`;
+  document.getElementById('feedStatus').textContent=skippedToday
+    ?'Heute als Fastentag eingetragen.'
+    :(fed
+      ?'Nochmal tippen fügt eine zweite Ration hinzu.'
+      :`Bucht die Ration und rechnet ${fmt(d.kg/p.fcr,3)} kg Zuwachs auf den Bestand (FQ ${fmt(p.fcr,2)}).`);
+
+  setSum('menge', manualOn(p)?`Eigene Menge <b>${fmt(p.manualKg,3)} kg</b> pro Tag`:'Nach Tabelle Aller Aqua');
+  setSum('woche',`<b>${ws.days}</b> Fütterungen · <b>${fmt(ws.feed,2)} kg</b> Futter · <b>${fmt(ws.gain,2)} kg</b> Zuwachs`);
+  setSum('abgang','Verkauf, Verlust, Umsetzen oder Zugang buchen');
+  setSum('mast', p.targetG?`Zielgewicht <b>${fmt(p.targetG,0)} g</b> pro Fisch`:'Noch kein Zielgewicht gesetzt');
+  setSum('vergleich', p.targetG?'Futterarten im Vergleich zum Zielgewicht':'Zielgewicht in der Mastplanung eintragen');
+  setSum('temp',`<b>${fmt(p.temp,1)} °C</b>`);
+  setSum('futterart',`<b>${PRODUCTS[p.feed].name}</b> · Korngröße ${d.cls.mm}`);
+  setSum('bestand',`<b>${count.toLocaleString('de-DE')}</b> Stück · <b>${fmt(p.avgG,1)} g</b> · <b>${fmt(p.totalKg,1)} kg</b>`);
+  setSum('verlauf',`${fl.length} Fütterung${fl.length===1?'':'en'} gebucht`);
+  setSum('abgangsbuch',`${outLog(p).length} Buchung${outLog(p).length===1?'':'en'}`);
+  setSum('protokoll', last?`Zuletzt am <b>${deDate(last.date)}</b>`:'Noch nichts gebucht');
+  setSum('verwalten', p.name+(siteOf(p)!==NOSITE?' · '+siteOf(p):''));
+
+  const sim=renderPrognosis(p);
+  renderCompare(p);
+  renderChart(p,sim);
+  renderManual(p);
+  renderOutForm();
+  renderOutLog(p);
+  renderHistory(p);
+}
+
+/* ---------- Simulation ---------- */
+function simulate(pond,targetG,opts){
+  opts=opts||{};
+  const feedKey=opts.feed||pond.feed;
+  const fcr=opts.fcr!=null?opts.fcr:pond.fcr;
+  const marks=opts.marks||[];
+  const maxDays=opts.maxDays||1200;
+  const count=pond.avgG>0?pond.totalKg*1000/pond.avgG:0;
+  if(count<=0) return null;
+  let bio=pond.totalKg, avg=pond.avgG, feedTotal=0, days=0;
+  const track=[{d:0,avg,bio}];
+  const hits=[]; let mi=0;
+  const p=PRODUCTS[feedKey];
+  // Fütterst du weniger als empfohlen, wächst es entsprechend langsamer
+  const base=dailyFor(pond).kg;
+  const fac=opts.factor!=null?opts.factor
+    :(manualOn(pond)&&base>0?pond.manualKg/base:1);
+  // Deckt das Futter den Zielbereich überhaupt ab?
+  const maxClass=p.classes[p.classes.length-1].max;
+  while(days<maxDays && avg<targetG){
+    const c=pickClass(p,avg);
+    const per100=interpTemp(c.vals,pond.temp);
+    const feed=(per100/100)*bio*fac;
+    feedTotal+=feed;
+    bio+=feed/fcr;
+    avg=bio*1000/count;
+    days++;
+    while(mi<marks.length && avg>=marks[mi]){
+      hits.push({g:marks[mi],days,feed:feedTotal,bio});
+      mi++;
+    }
+    if(days%7===0) track.push({d:days,avg,bio});
+  }
+  track.push({d:days,avg,bio});
+  return {days,feedTotal,bio,avg,track,hits,count,
+          reached:avg>=targetG, covers:targetG<=maxClass, product:p, fcr};
+}
+
+function dateIn(days){
+  const d=new Date(); d.setDate(d.getDate()+days);
+  return d.toLocaleDateString('de-DE');
+}
+
+function renderPrognosis(p){
+  const out=document.getElementById('prognosisOut');
+  const t=parseFloat(document.getElementById('targetG').value);
+  if(isNaN(t)||t<=0){ out.innerHTML='<div class="hint">Zielgewicht eingeben — dann siehst du Dauer, Futterbedarf und die Zwischenschritte.</div>'; return null; }
+  if(t<=p.avgG){ out.innerHTML='<div class="hint">Zielgewicht ist bereits erreicht.</div>'; return null; }
+
+  // Zwischenziele: runde Marken zwischen jetzt und Ziel
+  const cands=[15,25,40,50,75,100,150,200,300,400,450,500,600,800,1000];
+  const marks=cands.filter(m=>m>p.avgG&&m<t).slice(-5);
+  marks.push(t);
+
+  const s=simulate(p,t,{marks});
+  if(!s){ out.innerHTML='<div class="hint">Bestandsdaten unvollständig.</div>'; return null; }
+  if(!s.reached){
+    out.innerHTML='<div class="hint">Bei ' + fmt(p.temp,1) + ' °C und Futterquotient ' + fmt(p.fcr,2) + ' wird das Ziel in über drei Jahren nicht erreicht. Werte prüfen.</div>';
+    return null;
+  }
+
+  const rows=s.hits.map(h=>{
+    const last=h.g===t;
+    return `<tr${last?' style="font-weight:700"':''}>
+      <td class="name">${fmt(h.g,0)} g</td>
+      <td>${h.days}</td>
+      <td>${dateIn(h.days)}</td>
+      <td>${fmt(h.feed,1)}</td>
+      <td>${fmt(h.bio,0)}</td></tr>`;
+  }).join('');
+
+  out.innerHTML=`
+    <div class="pgrid">
+      <div><span>Dauer bis ${fmt(t,0)} g</span>${s.days} Tage</div>
+      <div><span>Fertig am</span>${dateIn(s.days)}</div>
+      <div><span>Futter gesamt</span>${fmt(s.feedTotal,1)} kg</div>
+      <div><span>Endbestand</span>${fmt(s.bio,1)} kg</div>
+    </div>
+    <table class="log" style="margin-top:14px">
+      <thead><tr><th>Ziel</th><th>Tage</th><th>Datum</th><th>Futter kg</th><th>Bestand</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+    <div class="hint" style="margin-top:10px">Futter- und Bestandswerte sind kumuliert ab heute, bei gleichbleibend ${fmt(p.temp,1)} °C und Futterquotient ${fmt(p.fcr,2)}.</div>`;
+  return s;
+}
+
+/* ---------- Futtervergleich ---------- */
+function renderCompare(p){
+  const out=document.getElementById('compareOut');
+  const t=parseFloat(document.getElementById('targetG').value);
+  if(isNaN(t)||t<=0||t<=p.avgG){ out.innerHTML='<div class="hint">Zielgewicht oben eingeben.</div>'; return; }
+
+  const results=Object.entries(PRODUCTS).map(([k,prod])=>{
+    const maxClass=prod.classes[prod.classes.length-1].max;
+    const minClass=prod.classes[0].min;
+    const s=simulate(p,t,{feed:k,fcr:prod.defFcr,maxDays:1200});
+    return {key:k,prod,s,
+      covers: t<=maxClass,
+      startsBelow: p.avgG<minClass};
+  }).filter(r=>r.s&&r.s.reached);
+
+  if(results.length===0){ out.innerHTML='<div class="hint">Kein Vergleich möglich.</div>'; return; }
+  results.sort((a,b)=>a.s.days-b.s.days);
+  const best=results[0];
+
+  const rows=results.map(r=>{
+    const cur=r.key===p.feed;
+    const note=[];
+    if(!r.covers) note.push('Tabelle endet bei '+r.prod.classes[r.prod.classes.length-1].max+' g');
+    if(r.startsBelow) note.push('startet unter Tabelle');
+    return `<tr${cur?' style="background:#F2F8F7"':''}>
+      <td class="name">${r.prod.name}${cur?' ●':''}</td>
+      <td>${r.s.days}</td>
+      <td>${fmt(r.s.feedTotal,1)}</td>
+      <td>${fmt(r.fcrShown||r.prod.defFcr,2)}</td>
+    </tr>${note.length?`<tr><td colspan="4" style="font-family:Inter,sans-serif;font-size:11px;color:#4B5F63;padding-top:0;border:none">↳ ${note.join(' · ')}</td></tr>`:''}`;
+  }).join('');
+
+  out.innerHTML=`
+    <table class="log">
+      <thead><tr><th>Futter</th><th>Tage</th><th>Futter kg</th><th>FQ</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+    <div class="hint" style="margin-top:10px">
+      Schnellster Weg zu ${fmt(t,0)} g: <b>${best.prod.name}</b> in ${best.s.days} Tagen mit ${fmt(best.s.feedTotal,1)} kg Futter.
+      Gerechnet mit dem typischen Futterquotienten je Sorte. ● markiert dein aktuelles Futter.
+    </div>`;
+}
+
+/* ---------- Verlaufskurve ---------- */
+function renderChart(p,sim){
+  const w=document.getElementById('chartWrap');
+  const hist=(p.history||[]).map((h,i)=>({d:i+1,bio:h.after,date:h.date}));
+  if(hist.length<2 && !sim){
+    w.innerHTML='<div class="empty">Sobald ein paar Fütterungen gebucht sind, erscheint hier die Wachstumskurve.</div>';
+    return;
+  }
+  const W=300,H=110,pad=6;
+  let pts=[];
+  if(hist.length>0) pts=hist.map(h=>({x:h.d,y:h.bio,real:true}));
+  let proj=[];
+  if(sim){
+    const off=hist.length>0?hist[hist.length-1].d:0;
+    proj=sim.track.map(t=>({x:off+t.d,y:t.bio,real:false}));
+  }
+  const all=[...pts,...proj];
+  if(all.length<2){ w.innerHTML='<div class="empty">Noch zu wenig Daten für eine Kurve.</div>'; return; }
+  const xs=all.map(a=>a.x), ys=all.map(a=>a.y);
+  const xmin=Math.min(...xs),xmax=Math.max(...xs),ymin=Math.min(...ys),ymax=Math.max(...ys);
+  const X=v=>pad+((v-xmin)/((xmax-xmin)||1))*(W-pad*2);
+  const Y=v=>H-pad-((v-ymin)/((ymax-ymin)||1))*(H-pad*2);
+  const path=a=>a.map((p2,i)=>(i?'L':'M')+X(p2.x).toFixed(1)+','+Y(p2.y).toFixed(1)).join(' ');
+  w.innerHTML=`
+    <svg viewBox="0 0 ${W} ${H}" style="width:100%;height:130px;display:block">
+      ${proj.length>1?`<path d="${path(proj)}" fill="none" stroke="#7C93A3" stroke-width="2" stroke-dasharray="4 3"/>`:''}
+      ${pts.length>1?`<path d="${path(pts)}" fill="none" stroke="#1B6B73" stroke-width="2.5" stroke-linejoin="round"/>`:''}
+      ${pts.length>0?`<circle cx="${X(pts[pts.length-1].x)}" cy="${Y(pts[pts.length-1].y)}" r="4" fill="#1B6B73"/>`:''}
+    </svg>
+    <div class="hint" style="margin-top:8px">
+      <b style="color:#1B6B73">— Ist-Verlauf</b> aus gebuchten Fütterungen
+      ${proj.length>1?' · <b style="color:#7C93A3">- - Prognose</b> bis Zielgewicht':''}
+      · ${fmt(ymin,1)}–${fmt(ymax,1)} kg
+    </div>`;
+}
+
+function renderHistory(p){
+  const w=document.getElementById('histWrap');
+  const log=feedLog(p);
+  if(log.length===0){
+    w.innerHTML='<div class="empty">Noch keine Fütterung gebucht.</div>';
+    return;
+  }
+  const totalFeed=log.reduce((s,h)=>s+h.feed,0);
+  const totalGain=log.reduce((s,h)=>s+h.gain,0);
+  const rows=[...log].reverse().slice(0,30).map(h=>
+    h.skip
+    ? `<tr style="opacity:.6"><td class="name">${deDate(h.date)}</td><td colspan="3" style="font-family:Inter,sans-serif">kein Futter</td><td><span class="delete-x" data-id="${h.id}">✕</span></td></tr>`
+    : `<tr><td class="name">${deDate(h.date)}</td><td>${fmt(h.feed,3)}</td><td>+${fmt(h.gain,3)}</td>
+     <td>${fmt(h.after,1)}</td><td><span class="delete-x" data-id="${h.id}">✕</span></td></tr>`).join('');
+  w.innerHTML=`<table class="log">
+    <thead><tr><th>Datum</th><th>Futter kg</th><th>Zuwachs</th><th>Bestand</th><th></th></tr></thead>
+    <tbody>${rows}</tbody></table>
+    <div class="hint" style="margin-top:10px">Gesamt: ${fmt(totalFeed,2)} kg Futter · ${fmt(totalGain,2)} kg Zuwachs
+    ${totalGain>0?` · effektiver FQ ${fmt(totalFeed/totalGain,2)}`:''}</div>`;
+  w.querySelectorAll('.delete-x').forEach(el=>{
+    el.addEventListener('click',()=>undoEntry(el.dataset.id));
+  });
+}
+
+/* ---------- Abgang: Verkauf & Verlust ---------- */
+let outKind='sale';
+
+function calcOutflow(p,o){
+  const before=stockCount(p);
+  const pcs=Math.max(0,Math.min(Math.round(o.pcs||0),before));
+  const kg=o.kg>0?o.kg:0;
+  const sampleAvg=(kg>0&&pcs>0)?kg*1000/pcs:null;
+  const removedKg=kg>0?kg:pcs*p.avgG/1000;
+  const restCount=Math.max(0,before-pcs);
+  let restKg=Math.max(0,p.totalKg-removedKg);
+  let restAvg=restCount>0?restKg*1000/restCount:p.avgG;
+  let sampled=false;
+  if(o.useAsSample&&sampleAvg&&restCount>0){
+    restAvg=sampleAvg;
+    restKg=restCount*sampleAvg/1000;
+    sampled=true;
+  }
+  if(restCount===0){restKg=0;restAvg=p.avgG;sampled=false;}
+  const probe={...p,totalKg:restKg,avgG:restAvg};
+  const daily=restCount>0?dailyFor(probe):{kg:0,cls:{mm:'–'}};
+  return {before,pcs,kg,removedKg,sampleAvg,restCount,restKg,restAvg,sampled,daily};
+}
+
+function calcInflow(target,removedKg,pcs){
+  const before=target.avgG>0?stockCount(target):0;
+  const count=before+pcs;
+  const kgNew=target.totalKg+removedKg;
+  const avgNew=count>0?kgNew*1000/count:target.avgG;
+  const probe={...target,totalKg:kgNew,avgG:avgNew};
+  const daily=count>0?dailyFor(probe):{kg:0,cls:{mm:'–'}};
+  return {before,count,kg:kgNew,avg:avgNew,daily};
+}
+
+function readOutForm(){
+  const t=document.getElementById('outTarget');
+  return {
+    kind:outKind,
+    pcs:parseInt(document.getElementById('outPcs').value)||0,
+    kg:parseFloat(document.getElementById('outKg').value)||0,
+    targetId:t?t.value:'',
+    party:document.getElementById('outParty').value.trim(),
+    addr:document.getElementById('outAddr').value.trim(),
+    trans:document.getElementById('outTrans').value.trim(),
+    measure:document.getElementById('outMeasure').value.trim(),
+    high:document.getElementById('outHigh').checked,
+    useAsSample:document.getElementById('outSampleChk')
+      ? document.getElementById('outSampleChk').checked : true
+  };
+}
+
+function renderOutForm(){
+  const p=ponds.find(x=>x.id===currentId); if(!p)return;
+  document.querySelectorAll('#outKindPills .pill').forEach(el=>
+    el.classList.toggle('active',el.dataset.kind===outKind));
+  document.getElementById('outReasonField').classList.toggle('hidden',outKind!=='loss');
+  document.getElementById('outMeasureField').classList.toggle('hidden',outKind!=='loss');
+  document.getElementById('outHighField').classList.toggle('hidden',outKind!=='loss');
+  const party=(outKind==='sale'||outKind==='in');
+  document.getElementById('outPartyField').classList.toggle('hidden',!party);
+  document.getElementById('outAddrField').classList.toggle('hidden',!party);
+  document.getElementById('outTransField').classList.toggle('hidden',!party);
+  document.getElementById('outPartyLabel').textContent=outKind==='in'?'Herkunftsbetrieb':'Empfänger';
+  document.getElementById('outAddrLabel').textContent=outKind==='in'?'Anschrift und Kategorie (z.B. Anlagenpass)':'Anschrift des Empfängers';
+  document.getElementById('outTargetField').classList.toggle('hidden',outKind!=='move');
+  document.getElementById('outNote').parentElement.classList.toggle('hidden',outKind==='move'&&ponds.length<2);
+  document.getElementById('outKgLabel').textContent=
+    outKind==='loss'?'Gewicht (kg, optional)':'Gesamtgewicht (kg)';
+  document.getElementById('outKg').placeholder=outKind==='loss'?'geschätzt':'88,5';
+  document.getElementById('outBookBtn').textContent=
+    outKind==='move'?'Umsetzen buchen':outKind==='in'?'Zugang buchen':'Abgang buchen';
+
+  // Zielteich-Liste, nach Anlage gruppiert
+  const sel=document.getElementById('outTarget');
+  const others=ponds.filter(x=>x.id!==p.id);
+  const keep=sel.value;
+  const sites=[...new Set(others.map(siteOf))];
+  sel.innerHTML=sites.map(s=>
+      `<optgroup label="${s}">`+others.filter(o=>siteOf(o)===s).map(o=>
+        `<option value="${o.id}">${o.name} — ${fmt(o.totalKg,1)} kg, Ø ${fmt(o.avgG,1)} g</option>`).join('')
+      +`</optgroup>`).join('')
+    +`<optgroup label="Neu"><option value="__new__">＋ Neuen Teich anlegen …</option></optgroup>`;
+  if(keep&&(keep==='__new__'||others.some(o=>o.id===keep))) sel.value=keep;
+  refreshSiteList();
+  const isNew=sel.value==='__new__';
+  document.getElementById('newTargetBox').classList.toggle('hidden',outKind!=='move'||!isNew);
+  if(isNew&&!document.getElementById('ntFeed').options.length){
+    document.getElementById('ntFeed').innerHTML=Object.entries(PRODUCTS).map(([k,v])=>
+      `<option value="${k}" ${k===p.feed?'selected':''}>${v.name}</option>`).join('');
+    document.getElementById('ntTemp').value=p.temp;
+    document.getElementById('ntSite').value='Mastanlage';
+  }
+
+  const o=readOutForm();
+  const box=document.getElementById('outPreview');
+
+  if(outKind==='move'&&others.length===0&&!isNew){
+    box.innerHTML='<div class="hint" style="margin-bottom:12px">Noch kein zweiter Teich vorhanden — wähle oben „Neuen Teich anlegen“.</div>';
+    return;
+  }
+  if(o.pcs<=0){
+    box.innerHTML='<div class="hint" style="margin-bottom:12px">'+(outKind==='loss'
+      ? 'Stückzahl eintragen. Gewicht nur, wenn du es kennst — sonst wird mit dem Ø gerechnet.'
+      : 'Stückzahl und gewogenes Gesamtgewicht eintragen — das dient gleich als Probewiegung.')+'</div>';
+    return;
+  }
+  if(o.kind==='in'){
+    const avgIn=o.kg>0&&o.pcs>0?o.kg*1000/o.pcs:p.avgG;
+    const inf=calcInflow(p,o.kg>0?o.kg:o.pcs*p.avgG/1000,o.pcs);
+    box.innerHTML=`<div class="sample"><b>Zugang:</b> ${o.pcs.toLocaleString('de-DE')} Stück · Ø ${fmt(avgIn,1)} g</div>
+      <div class="pgrid" style="margin:12px 0">
+        <div><span>Stück danach</span>${inf.count.toLocaleString('de-DE')}</div>
+        <div><span>Bestand</span>${fmt(inf.kg,1)} kg</div>
+        <div><span>Ø Fisch</span>${fmt(inf.avg,1)} g</div>
+        <div><span>Futter/Tag neu</span>${fmt(inf.daily.kg,inf.daily.kg<10?3:2)} kg</div>
+      </div>`;
+    return;
+  }
+  const r=calcOutflow(p,o);
+  let html='';
+  if(o.kind!=='loss'&&r.sampleAvg){
+    const diff=r.sampleAvg-p.avgG;
+    const pct=p.avgG>0?diff/p.avgG*100:0;
+    html+=`<div class="sample"><b>Probewiegung:</b> Ø ${fmt(r.sampleAvg,1)} g pro Fisch —
+      in der App stehen bisher ${fmt(p.avgG,1)} g (${diff>=0?'+':''}${fmt(pct,1)} %).</div>
+      <label class="chk"><input type="checkbox" id="outSampleChk" ${o.useAsSample?'checked':''}>
+      <span>Ø-Gewicht des Restbestands auf ${fmt(r.sampleAvg,1)} g setzen.
+      <span style="color:var(--ink-soft);display:block;margin-top:3px">Nur anhaken, wenn du quer durch den Teich gefischt hast — bei gezielt abgefischten großen Fischen fällt der Rest leichter aus.</span></span></label>`;
+  }
+
+  const grid=(rc,rk,ra,dk)=>`<div class="pgrid">
+      <div><span>Stück</span>${rc.toLocaleString('de-DE')}</div>
+      <div><span>Bestand</span>${fmt(rk,1)} kg</div>
+      <div><span>Ø Fisch</span>${fmt(ra,1)} g</div>
+      <div><span>Futter/Tag</span>${fmt(dk,dk<10?3:2)} kg</div>
+    </div>`;
+
+  if(o.kind==='move'){
+    const isNewT=o.targetId==='__new__';
+    const t=isNewT
+      ? {name:document.getElementById('ntName').value.trim()||'Neuer Teich',
+         site:document.getElementById('ntSite').value.trim(),
+         totalKg:0,avgG:r.sampleAvg||p.avgG,
+         feed:document.getElementById('ntFeed').value||p.feed,
+         temp:parseFloat(document.getElementById('ntTemp').value)||p.temp,
+         fcr:PRODUCTS[document.getElementById('ntFeed').value||p.feed].defFcr}
+      : ponds.find(x=>x.id===o.targetId);
+    const inf=calcInflow(t,r.removedKg,r.pcs);
+    html+=`<div class="arrowbox"><h3>${p.name} — danach</h3>
+        ${grid(r.restCount,r.restKg,r.restAvg,r.daily.kg)}</div>
+      <div class="arrowbox"><h3>↓ ${t.name}${siteOf(t)!==NOSITE?' · '+siteOf(t):''} — danach</h3>
+        ${grid(inf.count,inf.kg,inf.avg,inf.daily.kg)}
+        <div class="hint" style="margin-top:8px">${isNewT
+          ? `Der Teich wird beim Buchen neu angelegt — mit ${PRODUCTS[t.feed].name} bei ${fmt(t.temp,1)} °C.`
+          : `Vorher: ${fmt(t.totalKg,1)} kg, Ø ${fmt(t.avgG,1)} g, ${fmt(dailyFor(t).kg,dailyFor(t).kg<10?3:2)} kg Futter — der Ø beider Gruppen wird verrechnet.`}</div>
+      </div>`;
+  } else {
+    html+=`<div style="margin:12px 0">${grid(r.restCount,r.restKg,r.restAvg,r.daily.kg)}</div>`;
+  }
+  if(r.pcs<o.pcs) html+=`<div class="hint" style="margin-bottom:10px">Im Teich stehen nur ${r.before.toLocaleString('de-DE')} Fische — es werden ${r.pcs.toLocaleString('de-DE')} gebucht.</div>`;
+  box.innerHTML=html;
+  const chk=document.getElementById('outSampleChk');
+  if(chk) chk.addEventListener('change',renderOutForm);
+}
+
+function renderOutLog(p){
+  const w=document.getElementById('outWrap');
+  const outs=outLog(p);
+  if(outs.length===0){
+    w.innerHTML='<div class="empty">Noch kein Verkauf und kein Verlust gebucht.</div>';
+    return;
+  }
+  const sale=outs.filter(h=>h.type==='sale');
+  const loss=outs.filter(h=>h.type==='loss');
+  const sum=a=>({pcs:a.reduce((s,h)=>s+h.pcs,0),kg:a.reduce((s,h)=>s+h.kg,0)});
+  const s=sum(sale), l=sum(loss);
+  const LBL={sale:'Abgang',loss:'Verlust',move:'Umgesetzt',movein:'Zugesetzt',in:'Zugang'};
+  const rows=[...outs].reverse().slice(0,40).map(h=>`
+    <tr><td class="name">${deDate(h.date)}<br><span class="tag ${h.type}">${LBL[h.type]}</span>
+      ${h.type==='move'?`<div style="font-family:Inter,sans-serif;font-size:11px;color:var(--ink-soft);margin-top:3px">→ ${h.toName||''}</div>`:''}
+      ${h.party?`<div style="font-family:Inter,sans-serif;font-size:11px;color:var(--ink-soft);margin-top:3px">${h.type==='in'?'von':'an'} ${h.party}</div>`:''}
+      ${h.high?`<div style="font-family:Inter,sans-serif;font-size:11px;color:var(--warn);margin-top:3px">erhöhte Sterblichkeit</div>`:''}
+      ${h.type==='movein'?`<div style="font-family:Inter,sans-serif;font-size:11px;color:var(--ink-soft);margin-top:3px">← ${h.fromName||''}</div>`:''}
+      ${h.reason?`<div style="font-family:Inter,sans-serif;font-size:11px;color:var(--ink-soft);margin-top:3px">${h.reason}</div>`:''}
+      ${h.note?`<div style="font-family:Inter,sans-serif;font-size:11px;color:var(--ink-soft);margin-top:2px">${h.note}</div>`:''}</td>
+    <td>${(h.type==='movein'||h.type==='in')?'+':'−'}${h.pcs.toLocaleString('de-DE')}</td>
+    <td>${fmt(h.kg,1)}</td>
+    <td>${h.avgOut?fmt(h.avgOut,0):'–'}</td>
+    <td><span class="delete-x" data-id="${h.id}">✕</span></td></tr>`).join('');
+  w.innerHTML=`<table class="log">
+    <thead><tr><th>Datum</th><th>Stück</th><th>kg</th><th>Ø g</th><th></th></tr></thead>
+    <tbody>${rows}</tbody></table>
+    <div class="hint" style="margin-top:10px">
+      Verkauft: <b>${s.pcs.toLocaleString('de-DE')} Stück · ${fmt(s.kg,1)} kg</b>${s.pcs>0?` (Ø ${fmt(s.kg*1000/s.pcs,0)} g)`:''}<br>
+      Verlust: <b>${l.pcs.toLocaleString('de-DE')} Stück · ${fmt(l.kg,1)} kg</b>
+    </div>`;
+  w.querySelectorAll('.delete-x').forEach(el=>{
+    el.addEventListener('click',()=>undoEntry(el.dataset.id));
+  });
+}
+
+document.querySelectorAll('#outKindPills .pill').forEach(el=>{
+  el.addEventListener('click',()=>{outKind=el.dataset.kind;renderOutForm()});
+});
+['outPcs','outKg'].forEach(id=>
+  document.getElementById(id).addEventListener('input',renderOutForm));
+document.getElementById('outTarget').addEventListener('change',renderOutForm);
+['ntName','ntSite','ntTemp'].forEach(id=>
+  document.getElementById(id).addEventListener('input',renderOutForm));
+document.getElementById('ntFeed').addEventListener('change',renderOutForm);
+
+document.getElementById('outBookBtn').addEventListener('click',async()=>{
+  const p=ponds.find(x=>x.id===currentId); if(!p)return;
+  const o=readOutForm();
+  if(o.pcs<=0){toast('Bitte Stückzahl eingeben.');return}
+
+  if(o.kind==='in'){
+    const kg=o.kg>0?o.kg:o.pcs*p.avgG/1000;
+    const avgIn=o.kg>0?o.kg*1000/o.pcs:p.avgG;
+    const inf=calcInflow(p,kg,o.pcs);
+    const prevI={totalKg:p.totalKg,avgG:p.avgG,count:p.count,ration:p.ration?{...p.ration}:null};
+    p.totalKg=inf.kg; p.avgG=inf.avg; p.count=inf.count;
+    p.history.push({id:Date.now().toString(36),date:today(),type:'in',
+      pcs:o.pcs,kg,avgOut:avgIn,party:o.party,addr:o.addr,trans:o.trans,
+      note:document.getElementById('outNote').value.trim(),
+      feed:0,gain:0,after:p.totalKg,prev:prevI});
+    if((p.rationMode||'weekly')!=='daily') recalcRation(p);
+    ['outPcs','outKg','outNote','outParty','outAddr','outTrans'].forEach(id=>document.getElementById(id).value='');
+    document.getElementById('editTotal').value=Number(p.totalKg.toFixed(2));
+    document.getElementById('editAvg').value=Number(p.avgG.toFixed(2));
+    document.getElementById('editCount').value=stockCount(p);
+    renderDetail();
+    await save();
+    toast(`Zugang gebucht: ${o.pcs} Stück · ${fmt(kg,1)} kg. Ration neu: ${fmt(inf.daily.kg,3)} kg.`);
+    return;
+  }
+
+  let t=null;
+  if(o.kind==='move'){
+    if(o.targetId==='__new__'){
+      const nm=document.getElementById('ntName').value.trim();
+      if(!nm){toast('Bitte Name für den neuen Teich eingeben.');return}
+      const fk=document.getElementById('ntFeed').value||p.feed;
+      t={id:Date.now().toString(36)+'n',name:nm,
+         site:document.getElementById('ntSite').value.trim()||'Mastanlage',
+         totalKg:0,avgG:0,count:0,feed:fk,
+         temp:parseFloat(document.getElementById('ntTemp').value)||p.temp,
+         fcr:PRODUCTS[fk].defFcr,history:[],rationMode:'weekly',
+         species:speciesOf(p),unit:'T'};
+      ponds.push(t);
+    } else {
+      t=ponds.find(x=>x.id===o.targetId);
+    }
+    if(!t){toast('Bitte Zielteich auswählen.');return}
+  }
+  if(o.kind!=='loss'&&o.kg<=0&&!confirm('Ohne gewogenes Gesamtgewicht wird mit dem geschätzten Ø gerechnet. Trotzdem buchen?'))return;
+  const r=calcOutflow(p,o);
+  const link=Date.now().toString(36);
+  const prev={totalKg:p.totalKg,avgG:p.avgG,count:p.count,ration:p.ration?{...p.ration}:null};
+  const movedAvg=r.sampleAvg||p.avgG;
+  p.totalKg=r.restKg; p.avgG=r.restAvg; p.count=r.restCount;
+  p.history.push({
+    id:link,date:today(),type:o.kind,
+    pcs:r.pcs,kg:r.removedKg,avgOut:movedAvg,
+    reason:o.kind==='loss'?document.getElementById('outReason').value:'',
+    note:document.getElementById('outNote').value.trim(),
+    toId:t?t.id:'',toName:t?t.name:'',link:t?link:'',
+    party:o.party,addr:o.addr,trans:o.trans,measure:o.measure,high:o.kind==='loss'&&o.high,
+    sampled:r.sampled,feed:0,gain:0,after:p.totalKg,prev
+  });
+  if((p.rationMode||'weekly')!=='daily'&&r.restCount>0) recalcRation(p);
+
+  let inf=null;
+  if(t){
+    inf=calcInflow(t,r.removedKg,r.pcs);
+    const tprev={totalKg:t.totalKg,avgG:t.avgG,count:t.count,ration:t.ration?{...t.ration}:null};
+    t.totalKg=inf.kg; t.avgG=inf.avg; t.count=inf.count;
+    t.history=t.history||[];
+    t.history.push({
+      id:link+'r',date:today(),type:'movein',
+      pcs:r.pcs,kg:r.removedKg,avgOut:movedAvg,
+      fromId:p.id,fromName:p.name,link,
+      note:document.getElementById('outNote').value.trim(),
+      feed:0,gain:0,after:t.totalKg,prev:tprev
+    });
+    if((t.rationMode||'weekly')!=='daily') recalcRation(t);
+  }
+
+  document.getElementById('outPcs').value='';
+  document.getElementById('outKg').value='';
+  ['outNote','outParty','outAddr','outTrans','outMeasure'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('outHigh').checked=false;
+  document.getElementById('editTotal').value=Number(p.totalKg.toFixed(2));
+  document.getElementById('editAvg').value=Number(p.avgG.toFixed(2));
+  document.getElementById('editCount').value=stockCount(p);
+  renderDetail();
+  await save();
+  toast(t
+    ? `${r.pcs} Stück · ${fmt(r.removedKg,1)} kg → ${t.name}. Futter: ${fmt(r.daily.kg,3)} kg hier, ${fmt(inf.daily.kg,3)} kg dort.`
+    : `${o.kind==='sale'?'Verkauf':'Verlust'} gebucht: ${r.pcs} Stück · ${fmt(r.removedKg,1)} kg. Ration neu: ${fmt(r.daily.kg,3)} kg.`);
+});
+
+/* ---------- Eigene Futtermenge ---------- */
+function renderManual(p){
+  const chk=document.getElementById('manualChk');
+  const box=document.getElementById('manualBox');
+  chk.checked=!!p.manualOn;
+  box.classList.toggle('hidden',!p.manualOn);
+  const out=document.getElementById('manualOut');
+  if(!p.manualOn){out.innerHTML='';return}
+  if(!(p.manualKg>0)){
+    out.innerHTML='<div class="hint">Menge eintragen, die du tatsächlich pro Tag fütterst.</div>';
+    return;
+  }
+  const d=dailyFor(p);
+  const share=d.kg>0?p.manualKg/d.kg*100:0;
+  const gain=p.manualKg/p.fcr;
+  const implied=d.per100>0?p.manualKg/(d.per100/100):0;
+  const impliedCount=p.avgG>0?Math.round(implied*1000/p.avgG):0;
+  out.innerHTML=`<div class="pgrid" style="margin-bottom:12px">
+      <div><span>Deine Menge</span>${fmt(p.manualKg,3)} kg</div>
+      <div><span>Empfehlung</span>${fmt(d.kg,d.kg<10?3:2)} kg</div>
+      <div><span>Anteil</span>${fmt(share,0)} %</div>
+      <div><span>Zuwachs/Tag</span>${fmt(gain,3)} kg</div>
+    </div>
+    <div class="hint" style="margin-bottom:12px">Pro Fütterung werden ${fmt(p.manualKg,3)} kg gebucht und ${fmt(gain,3)} kg Zuwachs gerechnet (FQ ${fmt(p.fcr,2)}).</div>
+    ${implied>0?`<div class="sample"><b>Rückrechnung:</b> ${fmt(p.manualKg,3)} kg wären bei ${fmt(p.avgG,1)} g Ø und ${fmt(p.temp,1)} °C
+      die passende Ration für rund <b>${fmt(implied,1)} kg</b> Bestand — also etwa ${impliedCount.toLocaleString('de-DE')} Fische.
+      Im Teich stehen laut App ${fmt(p.totalKg,1)} kg.</div>
+      <button class="btn ghost" id="applyImpliedBtn" style="margin-top:10px">Bestand auf ${fmt(implied,1)} kg setzen</button>
+      <div class="hint" style="margin-top:8px">Nur nutzen, wenn du die Menge nach dem Fressverhalten eingestellt hast — nicht, wenn du bewusst knapper fütterst.</div>`:''}`;
+  const b=document.getElementById('applyImpliedBtn');
+  if(b) b.addEventListener('click',async()=>{
+    p.totalKg=implied;
+    p.count=stockCount(p);
+    document.getElementById('editTotal').value=Number(implied.toFixed(2));
+    document.getElementById('editCount').value=stockCount(p);
+    renderDetail();
+    await save();
+    toast(`Bestand auf ${fmt(implied,1)} kg gesetzt.`);
+  });
+}
+
+document.getElementById('manualChk').addEventListener('change',async e=>{
+  const p=ponds.find(x=>x.id===currentId); if(!p)return;
+  p.manualOn=e.target.checked;
+  if(p.manualOn&&!(p.manualKg>0)){
+    p.manualKg=Number(activeRation(p).kg.toFixed(3));
+    document.getElementById('manualKg').value=p.manualKg;
+  }
+  renderDetail();
+  await save();
+});
+
+document.getElementById('manualKg').addEventListener('input',async e=>{
+  const p=ponds.find(x=>x.id===currentId); if(!p)return;
+  p.manualKg=parseFloat(e.target.value)||0;
+  renderDetail();
+  await save();
+});
+
+/* ---------- Stammdaten, Arten, Nachweise ---------- */
+const SPECIES=['Regenbogenforelle','Bachforelle','Bachsaibling','Elsässer Saibling','Seesaibling','Sonstige'];
+const UNITS=[['T','Teich'],['B','Becken'],['R','Rinne'],['K','Kanal']];
+let farm={betreiber:'',anschrift:'',sites:{}};
+
+function speciesOf(p){return p.species||'Regenbogenforelle'}
+function unitOf(p){return p.unit||'T'}
+function unitLabel(p){const u=UNITS.find(x=>x[0]===unitOf(p));return u?u[1]:'Teich'}
+function fillSelect(id,opts,val){
+  const el=document.getElementById(id); if(!el)return;
+  el.innerHTML=opts.map(o=>{
+    const [v,t]=Array.isArray(o)?o:[o,o];
+    return `<option value="${v}" ${v===val?'selected':''}>${t}</option>`;
+  }).join('');
+}
+function siteMeta(name){
+  if(!farm.sites[name]) farm.sites[name]={adresse:'',zulauf:''};
+  return farm.sites[name];
+}
+
+function renderFarm(){
+  document.getElementById('farmName').value=farm.betreiber||'';
+  document.getElementById('farmAddr').value=farm.anschrift||'';
+  const sites=[...new Set(ponds.map(siteOf))];
+  document.getElementById('siteFields').innerHTML=sites.length===0?'':
+    sites.map(s=>{
+      const m=siteMeta(s);
+      return `<div class="arrowbox"><h3>${s}</h3>
+        <div class="field"><label>Anschrift der Anlage</label>
+          <input type="text" class="siteAddr" data-site="${s}" value="${(m.adresse||'').replace(/"/g,'&quot;')}" placeholder="Straße, PLZ Ort"></div>
+        <div class="field"><label>Frischwasserzulauf (l/s laut Wasserrechtsbescheid)</label>
+          <input type="number" step="0.1" min="0" inputmode="decimal" class="siteFlow" data-site="${s}" value="${m.zulauf||''}" placeholder="20"></div>
+      </div>`;
+    }).join('');
+  setSum('betrieb', farm.betreiber?`${farm.betreiber}${farm.anschrift?' · '+farm.anschrift:''}`:'Noch nicht ausgefüllt');
+}
+
+document.getElementById('saveFarmBtn').addEventListener('click',async()=>{
+  farm.betreiber=document.getElementById('farmName').value.trim();
+  farm.anschrift=document.getElementById('farmAddr').value.trim();
+  document.querySelectorAll('.siteAddr').forEach(el=>{siteMeta(el.dataset.site).adresse=el.value.trim()});
+  document.querySelectorAll('.siteFlow').forEach(el=>{siteMeta(el.dataset.site).zulauf=el.value.trim()});
+  await save();
+  toast('Betriebsdaten gespeichert.');
+});
+
+/* ---------- Nachweislisten ---------- */
+function allEntries(){
+  const rows=[];
+  ponds.forEach(p=>(p.history||[]).forEach(h=>rows.push({p,h})));
+  return rows.sort((a,b)=>a.h.date<b.h.date?-1:1);
+}
+function inRange(d){
+  const f=document.getElementById('recFrom').value;
+  const t=document.getElementById('recTo').value;
+  if(f&&d<f)return false;
+  if(t&&d>t)return false;
+  return true;
+}
+function tbl(head,rows,empty){
+  if(rows.length===0) return `<div class="empty">${empty}</div>`;
+  return `<div style="overflow-x:auto"><table class="log">
+    <thead><tr>${head.map(h=>`<th>${h}</th>`).join('')}</tr></thead>
+    <tbody>${rows.map(r=>`<tr>${r.map((c,i)=>`<td${i===0?' class="name"':''}>${c}</td>`).join('')}</tr>`).join('')}</tbody>
+  </table></div>`;
+}
+function csv(head,rows,name){
+  const head2=['Betreiber','Anlage',...head];
+  const lines=[head2.join(';'),...rows.map(r=>r.map(c=>
+    `"${String(c).replace(/<[^>]+>/g,'').replace(/"/g,'""')}"`).join(';'))];
+  const blob=new Blob(['\ufeff'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=name+'_'+today()+'.csv';
+  a.click();
+  toast('CSV erstellt.');
+}
+
+function recOutRows(){
+  return allEntries().filter(x=>x.h.type==='sale'&&inRange(x.h.date)).map(({p,h})=>[
+    farm.betreiber||'', siteOf(p),
+    deDate(h.date), speciesOf(p), h.avgOut?fmt(h.avgOut,1)+' g':'',
+    `${h.pcs} St / ${fmt(h.kg,1)} kg`,
+    h.party||'', h.addr||'', h.trans||'', h.note||''
+  ]);
+}
+function recMortRows(){
+  return allEntries().filter(x=>x.h.type==='loss'&&x.h.high&&inRange(x.h.date)).map(({p,h})=>[
+    farm.betreiber||'', siteOf(p),
+    deDate(h.date), `${unitOf(p)} — ${p.name}`, speciesOf(p), String(h.pcs),
+    [h.reason,h.note].filter(Boolean).join(' · '), h.measure||''
+  ]);
+}
+function recInRows(){
+  return allEntries().filter(x=>x.h.type==='in'&&inRange(x.h.date)).map(({p,h})=>[
+    farm.betreiber||'', siteOf(p),
+    deDate(h.date), speciesOf(p), h.avgOut?fmt(h.avgOut,1)+' g':'',
+    `${h.pcs} St / ${fmt(h.kg,1)} kg`,
+    h.party||'', h.addr||'', h.trans||'', h.note||''
+  ]);
+}
+const H_OUT=['Abgangsdatum','Wassertierart','Durchschnittsgewicht','Stückzahl / Gesamtgewicht','Empfänger','Anschrift','Transporteur','Bemerkung'];
+const H_MORT=['Datum der Feststellung','Teich/Becken/Rinne/Kanal','Wassertierart','Anzahl Verluste','Bemerkung','Eingeleitete Maßnahme'];
+const H_IN=['Zugangsdatum','Wassertierart','Durchschnittsgewicht','Stückzahl / Gesamtgewicht','Herkunftsbetrieb','Anschrift / Kategorie','Transporteur','Bemerkung'];
+
+function renderRecords(){
+  const missing=[];
+  if(!farm.betreiber) missing.push('Name des Betreibers');
+  document.getElementById('recSub').textContent=missing.length
+    ? 'Noch offen: '+missing.join(', ')
+    : (farm.betreiber+(farm.anschrift?' · '+farm.anschrift:''));
+
+  document.getElementById('recOut').innerHTML=tbl(H_OUT,recOutRows().map(r=>r.slice(2)),
+    'Keine Abgänge im Zeitraum.');
+  document.getElementById('recMort').innerHTML=tbl(H_MORT,recMortRows().map(r=>r.slice(2)),
+    'Keine erhöhte Sterblichkeit erfasst.');
+  document.getElementById('recIn').innerHTML=tbl(H_IN,recInRows().map(r=>r.slice(2)),
+    'Keine Zugänge im Zeitraum.');
+
+  // Betriebstagebuch: Futterverbrauch je Anlage
+  const sites=[...new Set(ponds.map(siteOf))];
+  document.getElementById('recDiary').innerHTML=sites.map(s=>{
+    const grp=ponds.filter(p=>siteOf(p)===s);
+    const fed={};
+    grp.forEach(p=>feedLog(p).forEach(h=>{
+      if(!inRange(h.date)||h.skip)return;
+      const k=PRODUCTS[p.feed].name;
+      fed[k]=(fed[k]||0)+h.feed;
+    }));
+    const m=siteMeta(s);
+    const rows=Object.entries(fed).map(([k,v])=>[k,fmt(v,2)+' kg']);
+    return `<div class="arrowbox"><h3>${s}</h3>
+      <div class="hint" style="margin-bottom:10px">Frischwasserzulauf: ${m.zulauf?m.zulauf+' l/s':'— noch nicht eingetragen'}</div>
+      ${tbl(['Futterart','verfüttert'],rows,'Keine Fütterung im Zeitraum.')}</div>`;
+  }).join('')+`<div class="hint" style="margin-top:12px">Die Spalte „Futtermittelbezug“ der Anlage 11 meint den <b>Einkauf</b>, nicht die Verfütterung. Oben steht der Verbrauch je Anlage — den Bezug erfassen wir im Futtermanagement.</div>`;
+}
+
+['recFrom','recTo'].forEach(id=>
+  document.getElementById(id).addEventListener('change',renderRecords));
+document.getElementById('csvOutBtn').addEventListener('click',()=>csv(H_OUT,recOutRows(),'Abgaenge'));
+document.getElementById('csvMortBtn').addEventListener('click',()=>csv(H_MORT,recMortRows(),'Sterblichkeit'));
+document.getElementById('csvInBtn').addEventListener('click',()=>csv(H_IN,recInRows(),'Zugaenge'));
+document.getElementById('recordsBtn').addEventListener('click',()=>{renderRecords();show('viewRecords')});
+document.getElementById('backBtn3').addEventListener('click',()=>{renderList();show('viewList')});
+
+/* ---------- Bestand: kg / Ø / Stück verknüpft ---------- */
+let stockOrder=['count','avg','total']; // zuletzt angefasst zuerst
+const STOCKF={total:'editTotal',avg:'editAvg',count:'editCount'};
+const STOCKN={total:'Gesamtgewicht',avg:'Ø-Gewicht',count:'Stückzahl'};
+
+function stockVals(){
+  return {
+    total:parseFloat(document.getElementById('editTotal').value)||0,
+    avg:parseFloat(document.getElementById('editAvg').value)||0,
+    count:parseInt(document.getElementById('editCount').value)||0
+  };
+}
+function syncStock(){
+  const v=stockVals();
+  const derive=stockOrder[2];
+  const hint=document.getElementById('stockCalcHint');
+  let ok=false;
+  if(derive==='total'&&v.avg>0&&v.count>0){
+    document.getElementById('editTotal').value=Number((v.avg*v.count/1000).toFixed(3)); ok=true;
+  } else if(derive==='avg'&&v.total>0&&v.count>0){
+    document.getElementById('editAvg').value=Number((v.total*1000/v.count).toFixed(1)); ok=true;
+  } else if(derive==='count'&&v.total>0&&v.avg>0){
+    document.getElementById('editCount').value=Math.round(v.total*1000/v.avg); ok=true;
+  }
+  hint.textContent=ok?`${STOCKN[derive]} wird aus den anderen beiden berechnet.`:'';
+}
+Object.entries(STOCKF).forEach(([k,id])=>{
+  document.getElementById(id).addEventListener('input',()=>{
+    stockOrder=[k,...stockOrder.filter(x=>x!==k)];
+    syncStock();
+  });
+});
+
+async function undoEntry(hid){
+  const p=ponds.find(x=>x.id===currentId);
+  const idx=p.history.findIndex(h=>h.id===hid);
+  if(idx<0)return;
+  const h=p.history[idx];
+  if(h.type==='move'||h.type==='movein'){
+    if(!confirm('Umsetzung zurücknehmen? Beide Teiche werden auf den Stand davor gesetzt.'))return;
+    const partnerId=h.type==='move'?h.toId:h.fromId;
+    const other=ponds.find(x=>x.id===partnerId);
+    if(other){
+      const oi=(other.history||[]).findIndex(e=>e.link===h.link&&e.id!==h.id);
+      if(oi>=0){
+        const oh=other.history[oi];
+        if(oh.prev){other.totalKg=oh.prev.totalKg;other.avgG=oh.prev.avgG;other.count=oh.prev.count;other.ration=oh.prev.ration||other.ration;}
+        other.history.splice(oi,1);
+      }
+    }
+    if(h.prev){p.totalKg=h.prev.totalKg;p.avgG=h.prev.avgG;p.count=h.prev.count;p.ration=h.prev.ration||p.ration;}
+  } else if(h.type==='in'){
+    if(h.prev){p.totalKg=h.prev.totalKg;p.avgG=h.prev.avgG;p.count=h.prev.count;p.ration=h.prev.ration||p.ration;}
+  } else if(h.type==='sale'||h.type==='loss'){
+    if(h.prev){
+      p.totalKg=h.prev.totalKg; p.avgG=h.prev.avgG; p.count=h.prev.count;
+      p.ration=h.prev.ration||p.ration;
+    } else {
+      p.count=stockCount(p)+h.pcs;
+      p.totalKg=p.totalKg+h.kg;
+      p.avgG=p.count>0?p.totalKg*1000/p.count:p.avgG;
+    }
+  } else {
+    p.totalKg=Math.max(0,p.totalKg-h.gain);
+    if(p.count>0) p.avgG=p.totalKg*1000/p.count;
+  }
+  p.history.splice(idx,1);
+  document.getElementById('editTotal').value=fmt(p.totalKg,2).replace(',','.');
+  document.getElementById('editAvg').value=fmt(p.avgG,2).replace(',','.');
+  document.getElementById('editCount').value=stockCount(p);
+  renderDetail();
+  await save();
+  toast('Eintrag zurückgenommen.');
+}
+
+/* ---------- actions ---------- */
+document.getElementById('feedBtn').addEventListener('click',async()=>{
+  const p=ponds.find(x=>x.id===currentId);
+  const d=activeRation(p);
+  const gain=d.kg/p.fcr;
+  p.count=p.avgG>0?Math.round(p.totalKg*1000/p.avgG):0;
+  p.totalKg=p.totalKg+gain;
+  if(p.count>0) p.avgG=p.totalKg*1000/p.count;
+  p.history.push({id:Date.now().toString(36),date:today(),feed:d.kg,gain,after:p.totalKg});
+  document.getElementById('editTotal').value=Number(p.totalKg.toFixed(2));
+  document.getElementById('editAvg').value=Number(p.avgG.toFixed(2));
+  document.getElementById('editCount').value=stockCount(p);
+  renderDetail();
+  await save();
+  toast(`Gebucht: ${fmt(d.kg,3)} kg Futter, +${fmt(gain,3)} kg Zuwachs.`);
+});
+
+document.querySelectorAll('.pill.mode').forEach(el=>{
+  el.addEventListener('click',async()=>{
+    const p=ponds.find(x=>x.id===currentId);
+    if(!p)return;
+    p.rationMode=el.dataset.mode;
+    if(p.rationMode==='weekly' && !p.ration) recalcRation(p);
+    renderDetail();
+    await save();
+  });
+});
+
+document.getElementById('noFeedBtn').addEventListener('click',async()=>{
+  const p=ponds.find(x=>x.id===currentId);
+  p.history.push({id:Date.now().toString(36),date:today(),feed:0,gain:0,after:p.totalKg,skip:true});
+  renderDetail();
+  await save();
+  toast('Fastentag eingetragen — kein Futter, kein Zuwachs.');
+});
+
+document.getElementById('targetG').addEventListener('input',async e=>{
+  const p=ponds.find(x=>x.id===currentId);
+  if(!p)return;
+  p.targetG=parseFloat(e.target.value)||null;
+  const sim=renderPrognosis(p);
+  renderCompare(p);
+  renderChart(p,sim);
+  await save();
+});
+
+document.getElementById('tempSlider').addEventListener('input',async e=>{
+  const p=ponds.find(x=>x.id===currentId);
+  p.temp=parseFloat(e.target.value);
+  renderDetail();
+  await save();
+});
+
+document.getElementById('saveStockBtn').addEventListener('click',async()=>{
+  const p=ponds.find(x=>x.id===currentId);
+  syncStock();
+  const v=stockVals();
+  const f=parseFloat(document.getElementById('editFcr').value);
+  if(v.avg<=0||v.count<=0||v.total<=0){toast('Bitte zwei der drei Werte eingeben.');return}
+  p.totalKg=v.total; p.avgG=v.avg; p.count=v.count;
+  p.fcr=(isNaN(f)||f<=0)?PRODUCTS[p.feed].defFcr:f;
+  p.site=document.getElementById('editSite').value.trim();
+  p.species=document.getElementById('editSpecies').value;
+  p.unit=document.getElementById('editUnit').value;
+  renderDetail();
+  await save();
+  document.getElementById('stockHint').textContent=
+    `Übernommen · ${v.count.toLocaleString('de-DE')} Fische · Ø ${fmt(v.avg,1)} g · ${fmt(v.total,2)} kg`;
+  toast('Bestand aktualisiert.');
+});
+
+document.getElementById('renameBtn').addEventListener('click',async()=>{
+  const p=ponds.find(x=>x.id===currentId);
+  const n=document.getElementById('editName').value.trim();
+  if(!n){toast('Name darf nicht leer sein.');return}
+  p.name=n;
+  document.getElementById('detailName').textContent=n;
+  await save();
+  toast('Name gespeichert.');
+});
+
+document.getElementById('deletePondBtn').addEventListener('click',async()=>{
+  const p=ponds.find(x=>x.id===currentId);
+  if(!confirm(`"${p.name}" mit allen Protokolldaten löschen?`))return;
+  ponds=ponds.filter(x=>x.id!==currentId);
+  await save();
+  renderList();
+  show('viewList');
+  toast('Teich gelöscht.');
+});
+
+document.getElementById('backBtn').addEventListener('click',()=>{renderList();show('viewList')});
+document.getElementById('backBtn2').addEventListener('click',()=>show('viewList'));
+
+/* ---------- new pond ---------- */
+function renderNewPills(){
+  const w=document.getElementById('newFeedPills');
+  w.innerHTML=Object.entries(PRODUCTS).map(([k,p])=>
+    `<div class="pill ${p.cls} ${k===newFeed?'active':''}" data-key="${k}"><b>${p.name}</b>${p.type}</div>`).join('');
+  w.querySelectorAll('.pill').forEach(el=>{
+    el.addEventListener('click',()=>{newFeed=el.dataset.key;renderNewPills()});
+  });
+}
+document.getElementById('newPondBtn').addEventListener('click',()=>{
+  document.getElementById('newName').value='';
+  document.getElementById('newSite').value='';
+  fillSelect('newSpecies',SPECIES,'Regenbogenforelle');
+  fillSelect('newUnit',UNITS,'T');
+  refreshSiteList();
+  document.getElementById('newTotal').value='';
+  document.getElementById('newAvg').value='';
+  document.getElementById('newTemp').value=10;
+  document.getElementById('newTempVal').textContent='10,0';
+  newFeed='gold'; renderNewPills();
+  show('viewNew');
+});
+document.getElementById('newTemp').addEventListener('input',e=>{
+  document.getElementById('newTempVal').textContent=fmt(parseFloat(e.target.value),1);
+});
+document.getElementById('createPondBtn').addEventListener('click',async()=>{
+  const name=document.getElementById('newName').value.trim()||`Teich ${ponds.length+1}`;
+  const t=parseFloat(document.getElementById('newTotal').value);
+  const a=parseFloat(document.getElementById('newAvg').value);
+  if(isNaN(t)||isNaN(a)||a<=0){toast('Bitte Gesamtgewicht und Ø-Gewicht eingeben.');return}
+  ponds.push({
+    id:Date.now().toString(36),name,totalKg:t,avgG:a,
+    count:Math.round(t*1000/a),site:document.getElementById('newSite').value.trim(),
+    species:document.getElementById('newSpecies').value,unit:document.getElementById('newUnit').value,
+    feed:newFeed,temp:parseFloat(document.getElementById('newTemp').value),
+    fcr:PRODUCTS[newFeed].defFcr,history:[]
+  });
+  await save();
+  renderList();
+  show('viewList');
+  toast(`"${name}" angelegt.`);
+});
+
+/* ---------- backup ---------- */
+function refreshBackupBox(){
+  const box=document.getElementById('backupBox');
+  if(box) box.value=JSON.stringify({v:2,ponds,farm});
+  setSum('sicherung',`${ponds.length} Teich${ponds.length===1?'':'e'} im Stand von heute`);
+}
+
+document.getElementById('downloadBtn').addEventListener('click',()=>{
+  const blob=new Blob([JSON.stringify(ponds,null,1)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;
+  a.download='teiche-'+today()+'.json';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+  toast('Sicherungsdatei erstellt.');
+});
+
+async function restoreFrom(txt){
+  let data;
+  try{ data=JSON.parse(txt); }
+  catch(e){ toast('Text nicht lesbar — bitte vollständig einfügen.'); return; }
+  let arr=null, fm=null;
+  if(Array.isArray(data)) arr=data;
+  else if(data&&Array.isArray(data.ponds)){arr=data.ponds; fm=data.farm;}
+  if(!arr){toast('Ungültige Sicherung.');return}
+  if(ponds.length>0 && !confirm(`${ponds.length} vorhandene Teiche werden durch ${arr.length} aus der Sicherung ersetzt. Fortfahren?`))return;
+  ponds=arr.map(p=>({history:[],fcr:0.9,...p}));
+  if(fm) farm={betreiber:'',anschrift:'',sites:{},...fm};
+  if(!farm.sites) farm.sites={};
+  renderFarm();
+  await save();
+  renderList();
+  refreshBackupBox();
+  toast(`${ponds.length} Teich${ponds.length===1?'':'e'} wiederhergestellt.`);
+}
+
+document.getElementById('importBtn').addEventListener('click',()=>{
+  const txt=document.getElementById('backupBox').value.trim();
+  if(!txt){toast('Bitte zuerst den Sicherungstext einfügen.');return}
+  restoreFrom(txt);
+});
+
+document.getElementById('fileInput').addEventListener('change',e=>{
+  const f=e.target.files[0];
+  if(!f)return;
+  const r=new FileReader();
+  r.onload=()=>restoreFrom(String(r.result));
+  r.onerror=()=>toast('Datei konnte nicht gelesen werden.');
+  r.readAsText(f);
+  e.target.value='';
+});
+
+/* ================= klappbare Abschnitte ================= */
+const FOLDKEY='fischzucht-folds';
+let folds={};
+const FOLD_OPEN_DEFAULT={woche:true,zeitraum:true};
+
+function initFolds(){
+  try{folds=JSON.parse(localStorage.getItem(FOLDKEY)||'{}')||{}}catch(e){folds={}}
+  document.querySelectorAll('.card[data-fold]').forEach(card=>{
+    const key=card.dataset.fold;
+    const h2=card.querySelector('h2');
+    if(!h2)return;
+    const body=document.createElement('div');
+    body.className='foldbody';
+    let n=h2.nextSibling;
+    while(n){const nx=n.nextSibling;body.appendChild(n);n=nx;}
+    const head=document.createElement('div');
+    head.className='foldhead';
+    card.insertBefore(head,h2);
+    head.appendChild(h2);
+    const chev=document.createElement('span');
+    chev.className='chev';chev.textContent='▼';
+    head.appendChild(chev);
+    const sum=document.createElement('div');
+    sum.className='foldsum';sum.id='fsum-'+key;
+    card.appendChild(sum);
+    card.appendChild(body);
+    card.classList.add('foldable');
+    if((key in folds)?folds[key]:!!FOLD_OPEN_DEFAULT[key]) card.classList.add('open');
+    head.addEventListener('click',()=>{
+      const open=!card.classList.contains('open');
+      card.classList.toggle('open',open);
+      folds[key]=open;
+      try{localStorage.setItem(FOLDKEY,JSON.stringify(folds))}catch(e){}
+    });
+  });
+}
+function setSum(key,txt){
+  const el=document.getElementById('fsum-'+key);
+  if(el) el.innerHTML=txt;
+}
+
+/* ================= Wetter ================= */
+const WX_LAT=49.6072, WX_LON=9.1772;
+const WXKEY='fischzucht-wetter';
+let wx=null, wxLoading=false, wxBack='viewList';
+let wxCfg={delays:{}};
+
+const WXICON={'clear-day':'☀️','clear-night':'🌙','partly-cloudy-day':'⛅','partly-cloudy-night':'☁️','cloudy':'☁️','fog':'🌫️','wind':'💨','rain':'🌧️','sleet':'🌨️','snow':'❄️','hail':'🌨️','thunderstorm':'⛈️'};
+const WXTXT={'clear-day':'klar','clear-night':'klar','partly-cloudy-day':'teils bewölkt','partly-cloudy-night':'teils bewölkt','cloudy':'bewölkt','fog':'Nebel','wind':'windig','rain':'Regen','sleet':'Schneeregen','snow':'Schnee','hail':'Hagel','thunderstorm':'Gewitter'};
+
+function omIcon(c){
+  if(c==null)return 'cloudy';
+  if(c===0)return 'clear-day';
+  if(c<=2)return 'partly-cloudy-day';
+  if(c===3)return 'cloudy';
+  if(c===45||c===48)return 'fog';
+  if(c>=71&&c<=77)return 'snow';
+  if(c>=95)return 'thunderstorm';
+  if(c>=51)return 'rain';
+  return 'cloudy';
+}
+function wxLoadCfg(){
+  try{const r=localStorage.getItem(WXKEY); if(r) wxCfg=Object.assign({delays:{}},JSON.parse(r))}catch(e){}
+  if(!wxCfg.delays) wxCfg.delays={};
+}
+function wxSites(){
+  const a=[...new Set(ponds.map(siteOf))].filter(x=>x!==NOSITE);
+  return a.length?a:[NOSITE];
+}
+function wxDelay(site){
+  const d=wxCfg.delays[site];
+  return (d&&d.from!=null&&d.to!=null)?d:{from:6,to:8};
+}
+function wxHour(d){return d.getHours()+' Uhr'}
+
+async function wxFetch(){
+  if(wxLoading)return;
+  wxLoading=true;
+  const iso=d=>new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10);
+  const now=new Date();
+  const out={hours:[],current:null,alerts:[],src:'Deutscher Wetterdienst über Bright Sky'};
+  try{
+    const from=new Date(now.getTime()-36*3600e3), to=new Date(now.getTime()+72*3600e3);
+    const r=await fetch(`https://api.brightsky.dev/weather?lat=${WX_LAT}&lon=${WX_LON}&date=${iso(from)}&last_date=${iso(to)}&tz=Europe/Berlin`);
+    const j=await r.json();
+    out.hours=(j.weather||[]).map(h=>({t:new Date(h.timestamp),prec:h.precipitation==null?null:+h.precipitation,temp:h.temperature,icon:h.icon}));
+  }catch(e){}
+  if(out.hours.length===0){
+    try{
+      const r=await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${WX_LAT}&longitude=${WX_LON}&hourly=precipitation,temperature_2m,weather_code&past_days=2&forecast_days=4&timezone=Europe%2FBerlin`);
+      const j=await r.json(); const H=j.hourly||{};
+      out.hours=(H.time||[]).map((t,i)=>({t:new Date(t),prec:H.precipitation?H.precipitation[i]:null,temp:H.temperature_2m?H.temperature_2m[i]:null,icon:omIcon(H.weather_code?H.weather_code[i]:null)}));
+      out.src='DWD-Modell über Open-Meteo';
+    }catch(e){}
+  }
+  try{
+    const r=await fetch(`https://api.brightsky.dev/current_weather?lat=${WX_LAT}&lon=${WX_LON}`);
+    const j=await r.json();
+    if(j&&j.weather) out.current={temp:j.weather.temperature,icon:j.weather.icon};
+  }catch(e){}
+  if(!out.current&&out.hours.length){
+    const n=Date.now(); let best=null;
+    out.hours.forEach(h=>{if(h.temp!=null&&(!best||Math.abs(h.t.getTime()-n)<Math.abs(best.t.getTime()-n)))best=h});
+    if(best) out.current={temp:best.temp,icon:best.icon};
+  }
+  try{
+    const r=await fetch(`https://api.brightsky.dev/alerts?lat=${WX_LAT}&lon=${WX_LON}`);
+    const j=await r.json();
+    out.alerts=(j&&j.alerts||[]).map(a=>({
+      title:a.headline_de||a.event_de||'Wetterwarnung',
+      text:a.description_de||a.instruction_de||'',
+      ev:[a.event_de,a.event_en,a.headline_de].filter(Boolean).join(' ')
+    }));
+  }catch(e){}
+  out.at=Date.now();
+  wx=out; wxLoading=false;
+  wxRenderChips();
+  if(!document.getElementById('viewWeather').classList.contains('hidden')) wxRenderPage();
+}
+
+function wxNight(){
+  if(!wx||!wx.hours.length)return null;
+  const now=new Date();
+  const start=new Date(now); start.setHours(18,0,0,0);
+  if(now.getHours()<18) start.setDate(start.getDate()-1);
+  const hrs=wx.hours.filter(h=>h.t>=start&&h.t<=now&&h.prec!=null);
+  if(!hrs.length)return null;
+  const sum=hrs.reduce((a,h)=>a+h.prec,0);
+  const wet=hrs.filter(h=>h.prec>=0.1);
+  if(!wet.length)return {sum:0,start};
+  return {sum,start,first:wet[0].t,last:wet[wet.length-1].t};
+}
+function wxNext(h){
+  if(!wx)return {sum:0,hours:[]};
+  const now=new Date(), end=new Date(now.getTime()+h*3600e3);
+  const hrs=wx.hours.filter(x=>x.t>now&&x.t<=end&&x.prec!=null);
+  return {sum:hrs.reduce((a,x)=>a+x.prec,0),hours:hrs};
+}
+function wxHeavyAlert(){
+  return !!(wx&&wx.alerts.some(a=>/starkregen|dauerregen|unwetter|heavy rain/i.test(a.ev)));
+}
+function wxLevel(){
+  if(!wx)return {k:'',mm:0};
+  const n=wxNight();
+  const mm=Math.max(wxNext(24).sum, n?n.sum:0);
+  if(wxHeavyAlert()||mm>15)return {k:'bad',mm};
+  if(mm>=5)return {k:'warn',mm};
+  return {k:'good',mm};
+}
+
+function wxRenderChips(){
+  ['wxChipList','wxChipDetail'].forEach(id=>{
+    const el=document.getElementById(id); if(!el)return;
+    if(!wx||!wx.current){el.classList.add('dead');return}
+    el.classList.remove('dead');
+    const lv=wxLevel();
+    el.querySelector('.ic').textContent=WXICON[wx.current.icon]||'☁️';
+    el.querySelector('.tp').textContent=(wx.current.temp==null?'–':Math.round(wx.current.temp))+'°';
+    el.querySelector('.dot').className='dot'+(lv.k==='good'?'':' '+lv.k);
+  });
+}
+
+function wxRenderAlerts(){
+  const el=document.getElementById('wxAlerts');
+  if(!wx||!wx.alerts.length){el.innerHTML='';return}
+  el.innerHTML=wx.alerts.map(a=>
+    `<div class="wx-band bad"><span class="h">${a.title}</span>${(a.text||'').slice(0,300)}</div>`).join('');
+}
+
+function wxRenderArrival(){
+  const el=document.getElementById('wxArrival');
+  if(!wx){el.innerHTML='';return}
+  const n=wxNight();
+  if(!n){el.innerHTML='';return}
+  if(!n.first||n.sum<0.2){
+    el.innerHTML=`<div class="wx-band good"><span class="h">Trocken seit gestern Abend</span>Kein nennenswerter Niederschlag — es kommt nichts nach.</div>`;
+    return;
+  }
+  const lv=wxHeavyAlert()||n.sum>15?'bad':(n.sum>=5?'warn':'good');
+  const sites=wxSites();
+  const rows=sites.map(s=>{
+    const d=wxDelay(s);
+    const a=new Date(n.first.getTime()+d.from*3600e3);
+    const b=new Date(n.last.getTime()+d.to*3600e3);
+    const lbl=(s===NOSITE||sites.length===1)?'':s+': ';
+    return `${lbl}Trübung erwartet <b>${a.getHours()}–${b.getHours()} Uhr</b>`;
+  }).join('<br>');
+  el.innerHTML=`<div class="wx-band ${lv}">
+    <span class="h">${fmt(n.sum,1)} mm seit gestern Abend</span>
+    Gefallen zwischen ${wxHour(n.first)} und ${wxHour(n.last)}.<br>${rows}
+  </div>`;
+}
+
+function wxRenderNow(){
+  const el=document.getElementById('wxNow');
+  if(!wx||!wx.current){el.innerHTML='<div class="empty">Keine Verbindung zum Wetterdienst.</div>';return}
+  const c=wx.current, n24=wxNext(24);
+  el.innerHTML=`<div class="wx-now">
+      <div class="ico">${WXICON[c.icon]||'☁️'}</div>
+      <div>
+        <div class="big">${c.temp==null?'–':fmt(c.temp,1)}<span style="font-size:20px"> °C</span></div>
+        <div class="txt">${WXTXT[c.icon]||'—'} · nächste 24 h ${fmt(n24.sum,1)} mm</div>
+      </div>
+    </div>`;
+}
+
+function wxRenderChart(){
+  const el=document.getElementById('wxChart');
+  if(!wx||!wx.hours.length){el.innerHTML='<div class="empty">Keine Daten.</div>';return}
+  const now=Date.now();
+  const hrs=wx.hours.filter(h=>h.t.getTime()>=now-12*3600e3&&h.t.getTime()<=now+24*3600e3&&h.prec!=null);
+  if(!hrs.length){el.innerHTML='<div class="empty">Keine Daten.</div>';return}
+  const max=Math.max(1,...hrs.map(h=>h.prec));
+  const bars=hrs.map(h=>{
+    const v=h.prec||0;
+    const cls=v<=0?'':(v>=2?'hi':(v>=0.5?'mid':'has'));
+    const fut=h.t.getTime()>now?' fut':'';
+    return `<div class="b ${cls}${fut}" style="height:${Math.max(2,Math.round(v/max*100))}%"></div>`;
+  }).join('');
+  el.innerHTML=`<div class="wx-bars">${bars}</div>
+    <div class="wx-axis"><span>${wxHour(hrs[0].t)}</span><span>${wxHour(hrs[hrs.length-1].t)}</span></div>
+    <div class="hint" style="margin-top:10px">Zwölf Stunden zurück, vierundzwanzig voraus. Höchster Wert <b>${fmt(max,1)} mm</b> in einer Stunde. Blasse Balken sind Vorhersage.</div>`;
+}
+
+function wxRenderDays(){
+  const el=document.getElementById('wxDays');
+  if(!wx||!wx.hours.length){el.innerHTML='<div class="empty">Keine Daten.</div>';return}
+  const byDay={};
+  wx.hours.forEach(h=>{
+    const k=h.t.toDateString();
+    if(!byDay[k])byDay[k]={d:h.t,mm:0,min:null,max:null};
+    const o=byDay[k];
+    if(h.prec!=null)o.mm+=h.prec;
+    if(h.temp!=null){o.min=o.min==null?h.temp:Math.min(o.min,h.temp);o.max=o.max==null?h.temp:Math.max(o.max,h.temp)}
+  });
+  const t0=new Date(); t0.setHours(0,0,0,0);
+  const days=Object.values(byDay).filter(o=>o.d>=t0).sort((a,b)=>a.d-b.d).slice(0,4);
+  const nm=['Sonntag','Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag'];
+  el.innerHTML=days.map((o,i)=>`<div class="wx-day">
+      <span class="dn">${i===0?'Heute':nm[o.d.getDay()]}</span>
+      <span class="tt">${o.min==null?'–':fmt(o.min,0)}–${o.max==null?'–':fmt(o.max,0)} °C</span>
+      <span class="mm">${fmt(o.mm,1)} mm</span>
+    </div>`).join('')||'<div class="empty">Keine Daten.</div>';
+}
+
+function wxRenderDelays(){
+  const el=document.getElementById('wxDelayFields');
+  el.innerHTML=wxSites().map(s=>{
+    const d=wxDelay(s);
+    return `<div class="field"><label>${s===NOSITE?'Anlage':s}</label>
+      <div class="row2">
+        <input type="number" step="0.5" min="0" max="48" inputmode="decimal" data-wxd="${s}" data-wxk="from" value="${d.from}">
+        <input type="number" step="0.5" min="0" max="48" inputmode="decimal" data-wxd="${s}" data-wxk="to" value="${d.to}">
+      </div>
+      <div class="hint">frühestens / spätestens Stunden nach dem Regen</div>
+    </div>`;
+  }).join('');
+}
+
+function wxRenderPage(){
+  wxRenderAlerts(); wxRenderArrival(); wxRenderNow(); wxRenderChart(); wxRenderDays(); wxRenderDelays();
+  const src=document.getElementById('wxSource');
+  if(src&&wx) src.textContent='Quelle: '+wx.src+'. Die App warnt nur — entscheiden musst du.';
+}
+
+function openWeather(){
+  wxBack=document.getElementById('viewDetail').classList.contains('hidden')?'viewList':'viewDetail';
+  show('viewWeather');
+  wxRenderPage();
+  if(!wx) wxFetch();
+}
+
+function initWeather(){
+  wxLoadCfg();
+  ['wxChipList','wxChipDetail'].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.addEventListener('click',openWeather);
+  });
+  document.getElementById('wxBackBtn').addEventListener('click',()=>show(wxBack));
+  document.getElementById('wxSaveDelay').addEventListener('click',()=>{
+    document.querySelectorAll('[data-wxd]').forEach(i=>{
+      const s=i.dataset.wxd,k=i.dataset.wxk,v=parseFloat(String(i.value).replace(',','.'));
+      if(!wxCfg.delays[s]) wxCfg.delays[s]={from:6,to:8};
+      if(!isNaN(v)) wxCfg.delays[s][k]=v;
+    });
+    try{localStorage.setItem(WXKEY,JSON.stringify(wxCfg))}catch(e){}
+    wxRenderArrival();
+    toast('Verzögerung gespeichert.');
+  });
+  document.addEventListener('visibilitychange',()=>{
+    if(document.visibilityState==='visible'&&wx&&Date.now()-(wx.at||0)>15*60*1000) wxFetch();
+  });
+  setInterval(()=>{if(document.visibilityState==='visible')wxFetch()},30*60*1000);
+  wxFetch();
+}
+
+initFolds();
+initWeather();
+load();
+</script>
+</body>
+</html>
