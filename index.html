@@ -212,6 +212,18 @@ header.top .hrow{display:flex;align-items:flex-start;justify-content:space-betwe
 .gp-in{width:62px;padding:4px 6px;font-size:12px;text-align:right;
   border:1px solid var(--line);border-radius:7px;background:#fff;
   font-family:'JetBrains Mono',monospace}
+.ptag{display:inline-block;font-size:10px;padding:1px 5px;border-radius:5px;
+  background:#EDE7DC;color:#8A7B63;margin-left:3px;vertical-align:middle}
+.ptag.echt{background:#DCEBE6;color:var(--teal-deep);font-weight:700}
+.wtab{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:8px}
+.wtab th{text-align:left;font-size:11px;color:var(--ink-soft);font-weight:600;
+  padding:0 4px 5px;border-bottom:1px solid var(--line)}
+.wtab th:not(:first-child),.wtab td:not(:first-child){text-align:right}
+.wtab td{padding:5px 4px;border-bottom:1px solid #F0EDE7;
+  font-family:'JetBrains Mono',monospace}
+.wtab td:first-child{font-family:inherit}
+.wtab tr.grp td{background:#FAF8F4;font-weight:700;font-family:inherit;font-size:11.5px;
+  color:var(--teal-deep);padding-top:8px}
 .moneybox{background:#F1F6F5;border:1px solid #CFE0DC;border-radius:12px;
   padding:13px 14px;margin-top:12px}
 .moneybox h4{margin:0 0 9px;font-size:14px;color:var(--teal-deep)}
@@ -791,6 +803,31 @@ h1 .qmark{width:23px;height:23px;min-width:23px;font-size:14px;margin-left:9px}
       <div id="cmList" style="margin-top:14px"></div>
     </div>
 
+    <div class="card" data-fold="calcEink">
+      <h2>Futter-Einkäufe</h2>
+      <div class="hint" style="margin-bottom:12px">Trag jede Futterrechnung ein. Die App rechnet den Preis frei Haus aus und setzt ihn als echten Preis für diese Korngröße — die Schätzung wird dann nicht mehr benutzt.</div>
+
+      <div class="row2">
+        <div class="field"><label>Datum</label><input type="date" id="fkDatum"></div>
+        <div class="field"><label>Händler</label><input type="text" id="fkHaendler" placeholder="Sauer" list="fkHList">
+          <datalist id="fkHList"></datalist></div>
+      </div>
+      <div class="field"><label>Korngröße</label><select id="fkKey"></select></div>
+      <div class="row2">
+        <div class="field"><label>Menge (kg)</label><input type="number" id="fkKg" step="1" min="1" inputmode="decimal" placeholder="20"></div>
+        <div class="field"><label>Preis je kg (€)</label><input type="number" id="fkPreis" step="0.01" min="0" inputmode="decimal" placeholder="4,70"></div>
+      </div>
+      <div class="row2">
+        <div class="field"><label>Versand gesamt (€)</label><input type="number" id="fkVersand" step="0.01" min="0" inputmode="decimal" placeholder="0"></div>
+        <div class="field"><label>&nbsp;</label>
+          <label style="display:flex;align-items:center;gap:7px;font-size:12.5px;padding:9px 0">
+            <input type="checkbox" id="fkNetto" style="width:17px;height:17px"> Preise sind netto</label></div>
+      </div>
+      <div class="finprev" id="fkPrev"></div>
+      <button class="btn" id="fkAdd">Einkauf eintragen</button>
+      <div id="fkListe" style="margin-top:16px"></div>
+    </div>
+
     <div class="card" data-fold="calcPreis">
       <h2>Preise</h2>
       <div class="hint" style="margin-bottom:14px">Startwerte, die du jederzeit ändern kannst. Die Bayerische Landesanstalt für Landwirtschaft nennt für Saiblinge 20–30 % Aufschlag gegenüber Regenbogenforellen.</div>
@@ -804,6 +841,26 @@ h1 .qmark{width:23px;height:23px;min-width:23px;font-size:14px;margin-left:9px}
         <h3>Speisefisch küchenfertig (€/kg)</h3>
         <div class="pricegrid"><span></span><span class="pricehead">Privat</span><span class="pricehead">Edeka</span></div>
         <div id="cpSpeise"></div>
+      </div>
+
+      <div class="arrowbox">
+        <h3>Futterpreise</h3>
+        <div class="hint" style="margin-bottom:10px">Werkspreise von Emsland-Aller Aqua, Liste ab 01.07.2026. Was du wirklich zahlst, liegt darüber — Fracht und Mindermengen. Trag den Aufschlag ein, den du bei deinem Händler siehst.</div>
+        <div class="hint" style="margin-bottom:6px"><b>Aufschlag je Sorte (€/kg)</b> — Brutfutter holst du in kleinen Mengen mit Versand, Mastfutter kommt palettenweise. Deswegen getrennt.</div>
+        <div class="row2">
+          <div class="field"><label>Brutfutter</label><input type="number" data-auf="brut" step="0.05" min="0" inputmode="decimal"></div>
+          <div class="field"><label>Futura 2 mm</label><input type="number" data-auf="futura2" step="0.05" min="0" inputmode="decimal"></div>
+        </div>
+        <div class="row2">
+          <div class="field"><label>Gold</label><input type="number" data-auf="gold" step="0.05" min="0" inputmode="decimal"></div>
+          <div class="field"><label>Silver</label><input type="number" data-auf="silver" step="0.05" min="0" inputmode="decimal"></div>
+        </div>
+        <label style="display:flex;align-items:center;gap:7px;font-size:12.5px;margin-bottom:4px">
+          <input type="checkbox" id="cpMwst" style="width:17px;height:17px"> 7 % Steuer drauf</label>
+        <label style="display:flex;align-items:center;gap:7px;font-size:12.5px;margin-bottom:4px">
+          <input type="checkbox" id="cpGoldSup" style="width:17px;height:17px"> Gold Support L statt normalem Gold</label>
+        <div id="cpWerkTab"></div>
+        <div class="hint" style="margin-top:9px">Die 7 % zählen mit, weil du nach § 24 pauschal abrechnest und keine Vorsteuer ziehen kannst — der Bruttopreis ist dein echter Preis. Beim Steuerberater bestätigen lassen.</div>
       </div>
 
       <div class="arrowbox">
@@ -1015,6 +1072,36 @@ const PRODUCTS={
     {min:2.0,max:7.0,mm:"0.9–1.6 mm",vals:[0.84,1.12,1.40,1.68,2.10,2.52,2.68,2.80,2.63]},
     {min:7.0,max:15.0,mm:"1.3–2.0 mm",vals:[0.70,0.94,1.17,1.41,1.76,2.11,2.25,2.34,2.20]}]}
 };
+
+/* Werkspreise Emsland-Aller Aqua, Liste ab 01.07.2026, netto ab Werk (€/kg).
+   Schlüssel = Futtername|Korngröße, genau wie simulate() sie bildet. */
+const WERK={
+  'Futura EX GR|0.5–1.0 mm':3.71,
+  'Futura EX GR|0.9–1.6 mm':3.71,
+  'Futura EX GR|1.3–2.0 mm':3.72,
+  'Aller Futura 2mm|2 mm':2.30,
+  'Aller Gold|3 mm':1.69,
+  'Aller Gold|4.5 mm':1.74,
+  'Aller Gold|6 mm':1.72,
+  'Aller Gold|8 mm':1.72,
+  'Aller Silver|3 mm':1.41,
+  'Aller Silver|4.5 mm':1.42,
+  'Aller Silver|6 mm':1.40,
+  'Aller Silver|8 mm':1.40
+};
+/* Gold Support L — funktionelles Futter, teurer */
+const WERK_SUP={
+  'Aller Gold|3 mm':1.80,
+  'Aller Gold|4.5 mm':1.81,
+  'Aller Gold|6 mm':1.91,
+  'Aller Gold|8 mm':1.91
+};
+const NAME2KEY={'Futura EX GR':'brut','Aller Futura 2mm':'futura2','Aller Gold':'gold','Aller Silver':'silver'};
+function prodOf(key){return NAME2KEY[String(key).split('|')[0]]||'gold'}
+function werkPreis(key){
+  if(calc.goldSupport && (key in WERK_SUP)) return WERK_SUP[key];
+  return WERK[key]||0;
+}
 
 const SEED=[{"id":"mt39vpeq","name":"Teich 1 Saibling","totalKg":30,"avgG":9,"count":3333,"feed":"futura2","temp":12,"fcr":0.8,"history":[]}];
 const KEY='fischzucht-teiche-v1';
@@ -1375,9 +1462,21 @@ function sackSize(){
   const v=parseFloat(String((document.getElementById('sackKg')||{}).value||'').replace(',','.'));
   return v>0?v:25;
 }
-function gPreis(key){
+function gPreisEcht(key){
   const v=calc.gpreis&&calc.gpreis[key];
-  return (v>0)?v:(calc.futter||2.70);
+  return (v>0)?v:0;
+}
+function aufschlagFor(key){
+  const p=calc.aufschlagP&&calc.aufschlagP[prodOf(key)];
+  return (typeof p==='number')?p:(calc.aufschlag||0);
+}
+function gPreisSchaetz(key){
+  const w=werkPreis(key);
+  if(!(w>0))return calc.futter||2.70;
+  return (w+aufschlagFor(key))*(calc.mwstAuf?1.07:1);
+}
+function gPreis(key){
+  return gPreisEcht(key)||gPreisSchaetz(key);
 }
 
 function renderGrainPlan(pond,targetG){
@@ -1399,7 +1498,9 @@ function renderGrainPlan(pond,targetG){
       <span style="text-align:right">${fmt(g.kg,g.kg<10?2:1)} kg<br>
         <span style="font-size:11.5px;color:var(--ink-soft)">
           <input type="number" class="gp-in" data-gp="${g.key}" step="0.05" min="0"
-                 inputmode="decimal" value="${Math.round(gPreis(g.key)*100)/100}"> €/kg
+                 inputmode="decimal" placeholder="${Math.round(gPreisSchaetz(g.key)*100)/100}"
+                 value="${gPreisEcht(g.key)?Math.round(gPreisEcht(g.key)*100)/100:''}"> €/kg
+          <span class="ptag ${gPreisEcht(g.key)?'echt':''}">${gPreisEcht(g.key)?'echt':'geschätzt'}</span>
           → <b>${eur(g.kg*pr)}</b></span></span>
     </div>`;
   }).join('');
@@ -1459,7 +1560,8 @@ function renderGrainPlan(pond,targetG){
     el.addEventListener('change',()=>{
       const v=parseFloat(String(el.value).replace(',','.'));
       calc.gpreis=calc.gpreis||{};
-      if(v>0)calc.gpreis[el.dataset.gp]=v; else delete calc.gpreis[el.dataset.gp];
+      if(v>0){calc.gpreis[el.dataset.gp]=v}
+      else{delete calc.gpreis[el.dataset.gp]; delete calc.gquelle[el.dataset.gp]}
       calcSave();
       renderGrainPlan(pond,targetG);
     });
@@ -2749,7 +2851,9 @@ const CALC_DEF={
   besatz:{regen:6,bach:7,saib:8},
   speise:{regen:{priv:15,gastro:10},bach:{priv:19,gastro:13},saib:{priv:18,gastro:12.5}},
   futter:2.70, fcr:0.9, sonst:0.30, verlust:3, ausbeute:86,
-  gpreis:{}, mastKanal:'priv'
+  gpreis:{}, mastKanal:'priv',
+  aufschlag:0.20, mwstAuf:true, goldSupport:true,
+  aufschlagP:{brut:1.06, futura2:0.20, gold:0.20, silver:0.20}, gquelle:{}, eink:[]
 };
 let calc=JSON.parse(JSON.stringify(CALC_DEF));
 
@@ -2763,6 +2867,32 @@ function calcLoad(){
       calc.speise=Object.assign({},JSON.parse(JSON.stringify(CALC_DEF.speise)),j.speise||{});
       if(!Array.isArray(calc.mess))calc.mess=[];
       if(!calc.gpreis||typeof calc.gpreis!=='object')calc.gpreis={};
+      if(typeof calc.aufschlag!=='number')calc.aufschlag=0.20;
+      if(typeof calc.mwstAuf!=='boolean')calc.mwstAuf=true;
+      if(typeof calc.goldSupport!=='boolean')calc.goldSupport=true;
+      if(!calc.gquelle||typeof calc.gquelle!=='object')calc.gquelle={};
+      if(!Array.isArray(calc.eink))calc.eink=[];
+      if(!calc.aufschlagP||typeof calc.aufschlagP!=='object')
+        calc.aufschlagP={brut:0.57,futura2:0.20,gold:0.20,silver:0.20};
+      ['brut','futura2','gold','silver'].forEach(k=>{
+        if(typeof calc.aufschlagP[k]!=='number')calc.aufschlagP[k]=calc.aufschlag||0.20});
+      /* Einmalig: echte Preise aus den Rechnungen, brutto frei Haus */
+      if(calc.seedRech!==3){
+        const alt=calc.seedRech;
+        calc.seedRech=3;
+        const seed=[
+          ['Aller Gold|4.5 mm',      2.20, 'Sauer 20.05.26'],
+          ['Aller Futura 2mm|2 mm',  2.61, 'Sauer 20.05.26'],
+          ['Futura EX GR|0.5–1.0 mm',5.09, 'Erzgebirge Shop 25.08.26'],
+          ['Futura EX GR|0.9–1.6 mm',5.09, 'Erzgebirge Shop 25.08.26'],
+          ['Futura EX GR|1.3–2.0 mm',5.09, 'Erzgebirge Shop 25.08.26']
+        ];
+        seed.forEach(([k,v,q])=>{
+          /* alten Startwert vom Juli überschreiben, eigene Eintragungen nie */
+          const istAlt = (alt===2 && k==='Futura EX GR|1.3–2.0 mm' && calc.gpreis[k]===4.59);
+          if(!(calc.gpreis[k]>0) || istAlt){calc.gpreis[k]=v; calc.gquelle[k]=q;}
+        });
+      }
     }
   }catch(e){}
 }
@@ -2904,6 +3034,139 @@ function renderCalcMess(){
   }));
 }
 
+function renderWerkTab(){
+  const box=document.getElementById('cpWerkTab');
+  if(!box)return;
+  const grp=[['brut','Brutfutter'],['futura2','Aufzuchtfutter'],['gold','Mastfutter Gold'],['silver','Mastfutter Silver']];
+  let html='<table class="wtab"><tr><th>Korngröße</th><th>Werk</th><th>bei dir</th></tr>';
+  grp.forEach(([pk,label])=>{
+    const prod=PRODUCTS[pk]; if(!prod)return;
+    const seen={};
+    let rows='';
+    prod.classes.forEach(c=>{
+      const key=prod.name+'|'+c.mm;
+      if(seen[key])return; seen[key]=1;
+      const w=werkPreis(key);
+      const echt=gPreisEcht(key);
+      const q=calc.gquelle&&calc.gquelle[key];
+      rows+=`<tr><td>${c.mm}${echt&&q?`<br><span style="font-size:10.5px;color:var(--ink-soft)">${q}</span>`:''}</td>
+        <td>${w>0?fmt(w,2):'–'}</td>
+        <td><b>${fmt(gPreis(key),2)}</b>${echt?' <span class="ptag echt">echt</span>':''}</td></tr>`;
+    });
+    if(rows)html+=`<tr class="grp"><td colspan="3">${label}${pk==='gold'&&calc.goldSupport?' Support L':''}</td></tr>`+rows;
+  });
+  box.innerHTML=html+'</table>';
+}
+
+/* ---------- Futter-Einkäufe ---------- */
+function alleKorn(){
+  const out=[];
+  ['brut','futura2','gold','silver'].forEach(pk=>{
+    const prod=PRODUCTS[pk]; if(!prod)return;
+    const seen={};
+    prod.classes.forEach(c=>{
+      const key=prod.name+'|'+c.mm;
+      if(seen[key])return; seen[key]=1;
+      out.push([key, prod.name+' · '+c.mm]);
+    });
+  });
+  return out;
+}
+
+function fkRechne(){
+  const kg=parseFloat(String(document.getElementById('fkKg').value).replace(',','.'))||0;
+  const pr=parseFloat(String(document.getElementById('fkPreis').value).replace(',','.'))||0;
+  const vs=parseFloat(String(document.getElementById('fkVersand').value).replace(',','.'))||0;
+  const netto=document.getElementById('fkNetto').checked;
+  if(!(kg>0&&pr>0))return null;
+  const f=netto?1.07:1;
+  const ware=kg*pr*f, versand=vs*f;
+  return {kg,pr,vs,netto, ware, versand, gesamt:ware+versand, jekg:(ware+versand)/kg};
+}
+
+function fkPrev(){
+  const box=document.getElementById('fkPrev'); if(!box)return;
+  const r=fkRechne();
+  if(!r){box.innerHTML='<span style="color:var(--ink-soft)">Menge und Preis je kg eintragen.</span>';return}
+  box.innerHTML=`<div class="calcrow"><span>Ware ${fmt(r.kg,0)} kg</span><span>${eur(r.ware)}</span></div>
+    ${r.versand?`<div class="calcrow"><span>Versand</span><span>${eur(r.versand)}</span></div>`:''}
+    <div class="calcrow sum"><span>Frei Haus</span><span>${eur(r.gesamt)}</span></div>
+    <div class="calcrow sum"><span>Das kostet dich das Kilo</span><span>${eur(r.jekg)}</span></div>
+    ${r.netto?'<div class="hint" style="margin-top:6px">Mit 7 % gerechnet, weil du keine Vorsteuer ziehen kannst.</div>':''}`;
+}
+
+function renderEink(){
+  const sel=document.getElementById('fkKey');
+  if(sel && !sel.options.length){
+    sel.innerHTML=alleKorn().map(([k,n])=>`<option value="${k}">${n}</option>`).join('');
+  }
+  const dl=document.getElementById('fkHList');
+  if(dl){
+    const h=[...new Set(calc.eink.map(e=>e.h).filter(Boolean))];
+    dl.innerHTML=h.map(x=>`<option value="${x}">`).join('');
+  }
+  const box=document.getElementById('fkListe'); if(!box)return;
+  if(!calc.eink.length){box.innerHTML='<div class="hint">Noch kein Einkauf eingetragen.</div>';return}
+  const li=[...calc.eink].sort((a,b)=>b.d.localeCompare(a.d)).map(e=>{
+    const nm=(alleKorn().find(([k])=>k===e.key)||[,e.key])[1];
+    return `<div class="calcrow">
+      <span>${nm}<br><span style="color:var(--ink-soft);font-size:11.5px">${deDate(e.d)}${e.h?' · '+e.h:''} · ${fmt(e.kg,0)} kg${e.vs?' · Versand '+eur(e.vs):''}</span></span>
+      <span style="text-align:right"><b>${eur(e.jekg)}</b>/kg<br>
+        <span style="font-size:11.5px;color:var(--ink-soft)">${eur(e.gesamt)}</span>
+        <span class="delete-x" data-fkdel="${e.id}" style="margin-left:6px">✕</span></span>
+    </div>`;
+  }).join('');
+  const summe=calc.eink.reduce((a,e)=>a+e.gesamt,0);
+  const kgS=calc.eink.reduce((a,e)=>a+e.kg,0);
+  box.innerHTML=`<div class="arrowbox"><h3>Eingetragen</h3>${li}
+    <div class="calcrow sum"><span>${calc.eink.length} Einkäufe · ${fmt(kgS,0)} kg</span><span>${eur(summe)}</span></div>
+    <div class="hint" style="margin-top:8px">Der jeweils neueste Einkauf je Korngröße bestimmt den Preis, mit dem gerechnet wird.</div></div>`;
+  box.querySelectorAll('[data-fkdel]').forEach(b=>b.addEventListener('click',()=>{
+    const id=b.dataset.fkdel;
+    calc.eink=calc.eink.filter(x=>x.id!==id);
+    preiseAusEink(); calcSave(); renderEink(); renderWerkTab();
+    toast('Einkauf gelöscht.');
+  }));
+}
+
+/* Neuester Einkauf je Korngröße setzt den echten Preis */
+function preiseAusEink(){
+  const best={};
+  calc.eink.forEach(e=>{ if(!best[e.key]||e.d>best[e.key].d) best[e.key]=e; });
+  Object.entries(best).forEach(([k,e])=>{
+    calc.gpreis[k]=Math.round(e.jekg*100)/100;
+    calc.gquelle[k]=(e.h?e.h+' ':'')+deDate(e.d);
+  });
+}
+
+function initEink(){
+  const d=document.getElementById('fkDatum'); if(d)d.value=today();
+  ['fkKg','fkPreis','fkVersand'].forEach(id=>{
+    const el=document.getElementById(id); if(el)el.addEventListener('input',fkPrev);
+  });
+  const nt=document.getElementById('fkNetto'); if(nt)nt.addEventListener('change',fkPrev);
+  fkPrev();
+  const add=document.getElementById('fkAdd');
+  if(add)add.addEventListener('click',()=>{
+    const r=fkRechne();
+    if(!r){toast('Menge und Preis je kg fehlen.');return}
+    const key=document.getElementById('fkKey').value;
+    calc.eink.push({
+      id:Date.now().toString(36), d:document.getElementById('fkDatum').value||today(),
+      h:document.getElementById('fkHaendler').value.trim(), key,
+      kg:r.kg, pr:r.pr, vs:r.versand, netto:r.netto,
+      gesamt:r.gesamt, jekg:r.jekg
+    });
+    preiseAusEink(); calcSave(); renderEink(); renderWerkTab();
+    document.getElementById('fkKg').value='';
+    document.getElementById('fkPreis').value='';
+    document.getElementById('fkVersand').value='';
+    fkPrev();
+    toast('Eingetragen — '+eur(r.jekg)+' je kg.');
+  });
+  renderEink();
+}
+
 /* ---------- Preise ---------- */
 function renderCalcPrices(){
   document.getElementById('cpBesatz').innerHTML=ARTEN.map(([k,n])=>
@@ -2913,6 +3176,11 @@ function renderCalcPrices(){
     `<div class="pricegrid"><label>${n}</label>
       <input type="number" step="0.5" min="0" inputmode="decimal" data-cps="${k}" data-kanal="priv" value="${calc.speise[k].priv}">
       <input type="number" step="0.5" min="0" inputmode="decimal" data-cps="${k}" data-kanal="gastro" value="${calc.speise[k].gastro}"></div>`).join('');
+  document.querySelectorAll('[data-auf]').forEach(el=>{
+    el.value=Math.round((calc.aufschlagP[el.dataset.auf]||0)*100)/100});
+  document.getElementById('cpMwst').checked=!!calc.mwstAuf;
+  document.getElementById('cpGoldSup').checked=!!calc.goldSupport;
+  renderWerkTab();
   document.getElementById('cpFutter').value=calc.futter;
   document.getElementById('cpFcr').value=calc.fcr;
   document.getElementById('cpSonst').value=calc.sonst;
@@ -2921,6 +3189,7 @@ function renderCalcPrices(){
 }
 
 function renderCalcAll(){
+  renderEink();
   renderCalcLen();
   if(!document.getElementById('clTable').classList.contains('hidden')) renderCalcTable();
   renderCalcWeg();
@@ -2928,6 +3197,8 @@ function renderCalcAll(){
   setSum('calcWeg','Besatz jetzt oder weiterfüttern — beides nebeneinander');
   setSum('calcLen',`Formel mit Faktor <b>${fmt(lgK(),3)}</b> · Tabelle 5–75 cm`);
   setSum('calcMess',`${calc.mess.length} Messung${calc.mess.length===1?'':'en'} übernommen`);
+  setSum('calcEink',calc.eink.length?`${calc.eink.length} Rechnung${calc.eink.length===1?'':'en'} · `+
+    eur(calc.eink.reduce((a,e)=>a+e.gesamt,0)):'Noch keine Futterrechnung eingetragen');
   setSum('calcPreis',`Regenbogen <b>${fmt(calc.speise.regen.priv,2)} €/kg</b> · Futter <b>${fmt(calc.futter,2)} €/kg</b>`);
 }
 
@@ -2983,10 +3254,16 @@ function initCalc(){
     toast('Messung übernommen.');
   });
 
+  initEink();
+
   document.getElementById('cpSave').addEventListener('click',()=>{
     const num=(el,fb)=>{const v=parseFloat(String(el.value).replace(',','.'));return isNaN(v)?fb:v};
     document.querySelectorAll('[data-cpb]').forEach(el=>{calc.besatz[el.dataset.cpb]=num(el,calc.besatz[el.dataset.cpb])});
     document.querySelectorAll('[data-cps]').forEach(el=>{calc.speise[el.dataset.cps][el.dataset.kanal]=num(el,calc.speise[el.dataset.cps][el.dataset.kanal])});
+    document.querySelectorAll('[data-auf]').forEach(el=>{
+      calc.aufschlagP[el.dataset.auf]=num(el,calc.aufschlagP[el.dataset.auf])});
+    calc.mwstAuf=document.getElementById('cpMwst').checked;
+    calc.goldSupport=document.getElementById('cpGoldSup').checked;
     calc.futter=num(document.getElementById('cpFutter'),calc.futter);
     calc.fcr=num(document.getElementById('cpFcr'),calc.fcr);
     calc.sonst=num(document.getElementById('cpSonst'),calc.sonst);
@@ -3549,7 +3826,15 @@ calcMess:`<p><b>Warum das lohnt:</b> Jede Standardformel ist ein Durchschnitt. D
 <p>Miss ein paar Fische, wieg sie, trag beides ein. Die App justiert die Formel nach — Tabelle und Kalkulation rechnen dann mit deinen Werten.</p>
 <p>Schon fünf bis zehn Messungen machen einen deutlichen Unterschied.</p>`,
 
-calcPreis:`<p>Hier stehen alle Zahlen, mit denen gerechnet wird: Verkaufspreise, Futterpreis, Futterquotient, Verluste, Ausbeute.</p>
+calcEink:`<p><b>Wofür:</b> Jede Futterrechnung einmal eintragen. Daraus wird der echte Preis je Kilo, mit dem die Mastplanung rechnet.</p>
+<p>Du brauchst vier Angaben von der Rechnung: Korngröße, Menge in Kilo, Preis je Kilo und den Versand. Ist der Preis netto ausgewiesen, setz den Haken — dann rechnet die App die 7 % dazu.</p>
+<p><b>Warum das lohnt:</b> Der Versand ist pauschal. Bei einem Sack Brutfutter macht er rund 40 Cent je Kilo aus, bei zwei Sack nur noch die Hälfte. Erst wenn du das mitrechnest, weißt du, was dich das Futter wirklich kostet.</p>
+<p>Der jeweils neueste Einkauf je Korngröße zählt. Trägst du später eine neuere Rechnung ein, wird der Preis von selbst aktualisiert.</p>`,
+
+calcPreis:`<p>Hier stehen alle Zahlen, mit denen gerechnet wird: Verkaufspreise, Futterpreise, Futterquotient, Verluste, Ausbeute.</p>
+<p><b>Futterpreise:</b> Hinterlegt sind die Werkspreise von Emsland-Aller Aqua. Was du wirklich zahlst, liegt darüber — Fracht und Mindermengen. Der Aufschlag gilt für alle Sorten, weil Transport je Sack gleich viel kostet, egal was drin ist.</p>
+<p>Der Aufschlag ist je Sorte getrennt, weil du unterschiedlich einkaufst: Brutfutter in kleinen Mengen mit Versand, Mastfutter palettenweise beim Händler. Beim Brutfutter macht der Versand allein rund 37 Cent je Kilo aus.</p>
+<p>Steht bei einer Korngröße <b>echt</b>, kommt der Preis aus einer deiner Rechnungen und wird nicht geschätzt. Darunter steht, von wem und wann. Zum Eintragen gehst du in die Mastplanung und überschreibst das Preisfeld. Feld leeren heißt: wieder schätzen.</p>
 <p><b>Ausbeute küchenfertig:</b> Was vom Lebendgewicht übrig bleibt, wenn ausgenommen ist. 86 % heißt: aus 350 g lebend werden rund 300 g küchenfertig.</p>`,
 
 finLief:`<p><b>Der Ablauf:</b> Bei jeder Lieferung schreibst du einen Lieferschein. Die Zahlen davon trägst du hier ein — Datum und Kilo, mehr nicht.</p>
