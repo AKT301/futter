@@ -2873,9 +2873,15 @@ function calcLoad(){
       if(!calc.gquelle||typeof calc.gquelle!=='object')calc.gquelle={};
       if(!Array.isArray(calc.eink))calc.eink=[];
       if(!calc.aufschlagP||typeof calc.aufschlagP!=='object')
-        calc.aufschlagP={brut:0.57,futura2:0.20,gold:0.20,silver:0.20};
+        calc.aufschlagP={brut:1.06,futura2:0.20,gold:0.20,silver:0.20};
       ['brut','futura2','gold','silver'].forEach(k=>{
         if(typeof calc.aufschlagP[k]!=='number')calc.aufschlagP[k]=calc.aufschlag||0.20});
+    }
+    /* Diese Absicherungen und die echten Preise gelten auch beim allerersten
+       Aufruf, wenn noch nichts gespeichert wurde. */
+    if(!calc.gpreis||typeof calc.gpreis!=='object')calc.gpreis={};
+    if(!calc.gquelle||typeof calc.gquelle!=='object')calc.gquelle={};
+    if(!Array.isArray(calc.eink))calc.eink=[];
       /* Einmalig: echte Preise aus den Rechnungen, brutto frei Haus */
       if(calc.seedRech!==3){
         const alt=calc.seedRech;
@@ -2893,7 +2899,7 @@ function calcLoad(){
           if(!(calc.gpreis[k]>0) || istAlt){calc.gpreis[k]=v; calc.gquelle[k]=q;}
         });
       }
-    }
+    if(calc.eink.length)preiseAusEink();
   }catch(e){}
 }
 function calcSave(){try{localStorage.setItem(CALCKEY,JSON.stringify(calc))}catch(e){}}
