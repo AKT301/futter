@@ -209,6 +209,27 @@ header.top .hrow{display:flex;align-items:flex-start;justify-content:space-betwe
 .wx-day .dn{flex:1;font-weight:600}
 .wx-day .mm{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--teal-deep);min-width:64px;text-align:right}
 .wx-day .tt{font-family:'JetBrains Mono',monospace;color:var(--ink-soft);min-width:76px;text-align:right}
+/* ---------- Erklärungen ---------- */
+.qmark{display:inline-flex;align-items:center;justify-content:center;
+  width:19px;height:19px;min-width:19px;border-radius:50%;
+  border:1.5px solid var(--teal);color:var(--teal);
+  font-size:12px;font-weight:800;line-height:1;cursor:pointer;
+  margin-left:7px;vertical-align:middle;background:#fff;
+  font-family:Georgia,serif;padding-bottom:1px}
+.qmark:active{background:var(--teal);color:#fff}
+.qmark.on{background:var(--teal);color:#fff}
+.helpbox{display:none;background:#F1F6F5;border:1px solid #CFE0DC;
+  border-left:4px solid var(--teal);border-radius:10px;
+  padding:13px 15px;margin:2px 0 12px;font-size:13.5px;line-height:1.55;color:#2C3D3A}
+.helpbox.on{display:block}
+.helpbox b{color:var(--teal-deep)}
+.helpbox p{margin:0 0 9px}
+.helpbox p:last-child{margin-bottom:0}
+.helpbox ul{margin:0 0 9px;padding-left:19px}
+.helpbox li{margin-bottom:4px}
+h1 .qmark{width:23px;height:23px;min-width:23px;font-size:14px;margin-left:9px}
+.foldhead .qmark{flex:0 0 auto}
+
 /* ---------- Finanzteil ---------- */
 .finrow{display:flex;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px solid var(--line);font-size:14px}
 .finrow:last-child{border-bottom:0}
@@ -3373,7 +3394,183 @@ function initFin(){
   });
 }
 
+/* ================= Erklärungen ================= */
+const HELP={
+
+woche:`<p><b>Was hier passiert:</b> Die App rechnet aus Bestand, Wassertemperatur und Futtersorte aus, wie viel du diese Woche täglich füttern sollst.</p>
+<p>Du hakst jeden Tag ab, was gefüttert wurde. Daraus wächst der Bestand rechnerisch mit — du musst nicht jedes Mal neu wiegen.</p>
+<p><b>Wichtig:</b> Die Menge gilt pro Tag, nicht pro Woche.</p>`,
+
+bestand:`<p><b>Wofür:</b> Hier steht, was gerade im Teich ist — Gesamtgewicht, Durchschnittsgewicht je Fisch und Stückzahl.</p>
+<p>Diese drei Zahlen hängen zusammen: Gesamtgewicht geteilt durch Stückzahl ergibt das Durchschnittsgewicht. Änderst du eine, rechnet die App die anderen nach.</p>
+<p><b>Wann korrigieren:</b> Nach einer Probewiegung. Wieg ein paar Fische, trag das echte Durchschnittsgewicht ein — dann stimmt die Futtermenge wieder.</p>`,
+
+temp:`<p><b>Warum das wichtig ist:</b> Forellen fressen je nach Wassertemperatur ganz unterschiedlich viel. Bei 6 °C brauchen sie etwa halb so viel wie bei 14 °C.</p>
+<p>Trag die Temperatur ein, die du gemessen hast. Die App rechnet die Futtermenge sofort um.</p>`,
+
+futterart:`<p><b>Wofür:</b> Jede Futtersorte hat eigene Tabellenwerte und eine eigene Korngröße je Fischgröße.</p>
+<p>Die App wählt die Korngröße automatisch nach dem Durchschnittsgewicht. Du stellst nur die Sorte ein.</p>
+<p><b>Futterquotient:</b> Wie viel Kilo Futter du für ein Kilo Zuwachs brauchst. 0,9 heißt: 900 g Futter geben 1000 g Fisch. Je kleiner, desto besser das Futter verwertet wird.</p>`,
+
+menge:`<p><b>Wofür:</b> Wenn du absichtlich anders fütterst als die App vorschlägt — weniger bei schlechtem Wasser, mehr vor dem Verkauf.</p>
+<p>Trag ein, was du wirklich fütterst. Die App zeigt dir, wie viel Prozent der Empfehlung das ist und was an Zuwachs dabei rauskommt.</p>`,
+
+abgang:`<p><b>Vier Arten von Buchungen:</b></p>
+<ul>
+<li><b>Abgang</b> — Fische gehen raus: Verkauf an Privat, Abgabe von Besatzfisch, Lieferung an einen Kunden.</li>
+<li><b>Verlust</b> — Sterblichkeit. Mit Ursache, damit es im Nachweis sauber steht.</li>
+<li><b>Umsetzen</b> — In einen anderen Teich. Die App bucht dort automatisch zu.</li>
+<li><b>Zugang</b> — Zukauf oder eigener Einsatz.</li>
+</ul>
+<p><b>Tipp:</b> Wenn du das Gesamtgewicht wiegst, wird daraus gleich ein neues Durchschnittsgewicht für den Restbestand.</p>`,
+
+mast:`<p><b>Wofür:</b> Du gibst ein Zielgewicht ein — die App sagt dir, wie lange es dauert und wie viel Futter du dafür brauchst.</p>
+<p>Gerechnet wird mit der aktuellen Wassertemperatur. Wird es kälter, dauert es länger.</p>
+<p>Darunter steht, welche Korngrößen du in welcher Menge einkaufen musst.</p>`,
+
+vergleich:`<p><b>Wofür:</b> Was kostet dich ein Kilo Zuwachs mit Sorte A gegenüber Sorte B.</p>
+<p>Teureres Futter mit besserem Futterquotienten kann unterm Strich günstiger sein — genau das rechnet dieser Abschnitt aus.</p>
+<p><b>Zu beachten:</b> Eine Sorte allein deckt die ganze Mast selten ab. Für die echten Mengen schau in die Mastplanung.</p>`,
+
+verlauf:`<p>Jede Fütterung, jeder Verkauf, jeder Verlust steht hier mit Datum.</p>
+<p>Du kannst einzelne Einträge löschen, wenn du dich vertippt hast — der Bestand wird dann zurückgerechnet.</p>`,
+
+abgangsbuch:`<p>Alle Abgänge dieses Teichs auf einen Blick — mit Empfänger und Anschrift.</p>
+<p>Das ist die Grundlage für den amtlichen Abgabenachweis. Was hier steht, landet automatisch im Nachweisblatt.</p>`,
+
+protokoll:`<p>Notizen zum Teich: Was du beobachtet hast, was du gemacht hast.</p>
+<p>Bei einer Kontrolle ist ein gepflegtes Betriebstagebuch Gold wert.</p>`,
+
+verwalten:`<p>Name, Anlage und Fischart ändern — oder den Teich löschen.</p>
+<p><b>Achtung:</b> Löschen nimmt die ganze Geschichte mit. Vorher lieber eine Datensicherung machen.</p>`,
+
+zeitraum:`<p>Futter, Zuwachs und Kosten über einen frei gewählten Zeitraum — für den Monat, das Quartal oder das ganze Jahr.</p>`,
+
+betrieb:`<p>Name und Anschrift für die amtlichen Vordrucke. Einmal ausfüllen, steht dann in jedem Nachweisblatt.</p>`,
+
+sicherung:`<p><b>Das Wichtigste in der App.</b> Der Text ist dein kompletter Datenstand.</p>
+<p>Sichere ihn regelmäßig als Datei. Wenn das Handy kaputtgeht oder du den Browser leerst, sind sonst alle Daten weg.</p>
+<p>Zum Wiederherstellen: Text einlesen, Sicherung einfügen, fertig.</p>`,
+
+wxset:`<p><b>Verzögerung im Berg:</b> Regen braucht bei dir sechs bis acht Stunden, bis er in der Anlage ankommt.</p>
+<p>Die App rechnet aus, wann die Trübung zu erwarten ist — nicht wann es geregnet hat, sondern wann du es merkst.</p>
+<p>Stell den Wert je Anlage ein, sobald du ihn genauer kennst.</p>`,
+
+calcWeg:`<p><b>Die Kernfrage:</b> Jetzt als Besatzfisch verkaufen oder weiterfüttern und als Speisefisch verkaufen?</p>
+<p>Links steht, was du heute bekommst. Rechts, was übrig bleibt, wenn du Futter, Verluste und sonstige Kosten abziehst.</p>
+<p>Der Mehrertrag unten ist der Unterschied — und die Dauer sagt dir, wie lange dein Geld gebunden ist.</p>`,
+
+calcLen:`<p><b>Wofür:</b> Besatzfisch verkaufst du nach Länge, Speisefisch nach Gewicht. Hier rechnest du zwischen beidem um.</p>
+<p>Gib eine Länge ein und du bekommst das Gewicht — oder umgekehrt.</p>
+<p>Die Formel ist an deine eigenen Probewiegungen angepasst. Je mehr du misst, desto genauer wird sie.</p>`,
+
+calcMess:`<p><b>Warum das lohnt:</b> Jede Standardformel ist ein Durchschnitt. Deine Fische wachsen anders als die im Lehrbuch.</p>
+<p>Miss ein paar Fische, wieg sie, trag beides ein. Die App justiert die Formel nach — Tabelle und Kalkulation rechnen dann mit deinen Werten.</p>
+<p>Schon fünf bis zehn Messungen machen einen deutlichen Unterschied.</p>`,
+
+calcPreis:`<p>Hier stehen alle Zahlen, mit denen gerechnet wird: Verkaufspreise, Futterpreis, Futterquotient, Verluste, Ausbeute.</p>
+<p><b>Ausbeute küchenfertig:</b> Was vom Lebendgewicht übrig bleibt, wenn ausgenommen ist. 86 % heißt: aus 350 g lebend werden rund 300 g küchenfertig.</p>`,
+
+finLief:`<p><b>Der Ablauf:</b> Bei jeder Lieferung schreibst du einen Lieferschein. Die Zahlen davon trägst du hier ein — Datum und Kilo, mehr nicht.</p>
+<p>Das Papier bleibt in deinem Ordner. Am Quartalsende macht die App aus allen Lieferungen die Rechnung, jede Lieferung eine eigene Zeile.</p>
+<p>Bei Besatzfisch wird statt Kilo die Stückzahl und die Größe eingetragen.</p>`,
+
+finOffen:`<p>Alles, was geliefert, aber noch nicht abgerechnet ist — nach Kunde sortiert.</p>
+<p>Ein Tipp auf <b>Rechnung erzeugen</b> und die App baut daraus die fertige Rechnung.</p>`,
+
+finPriv:`<p><b>Wofür:</b> Kunden am Teich, ohne Rechnung.</p>
+<p>Die App rechnet Kilo mal Preis und rundet auf ganze Euro. Wenn jemand mehr gibt, trag ein was du bekommen hast — die Differenz wird als Trinkgeld getrennt geführt.</p>
+<p><b>Warum getrennt:</b> Damit deine Preisliste sauber bleibt. Für den Soll-Ist-Vergleich zählt der berechnete Preis, nicht das Trinkgeld.</p>`,
+
+finRech:`<p>Alle erzeugten Rechnungen. Offene stehen oben in Orange.</p>
+<p>Weil du keine Bilanz machst, sondern Einnahmen und Ausgaben gegenüberstellst, zählt für das Finanzamt der <b>Tag der Zahlung</b> — nicht das Rechnungsdatum. Deswegen buchst du hier ab, wenn das Geld da ist.</p>`,
+
+finKunden:`<p>Jeder Kunde einmal anlegen: Anschrift, Kunden-ID, Preis und ob quartalsweise oder je Lieferung abgerechnet wird.</p>
+<p>Danach reicht bei jeder Lieferung Datum und Menge — den Rest weiß die App.</p>`,
+
+finStamm:`<p>Kopf und Fuß jeder Rechnung. Einmal ausfüllen, steht dann überall drin.</p>
+<p><b>Die Steuernummer ist Pflicht</b> nach § 14 UStG. Das ist nicht die elfstellige Steuer-ID, sondern die Nummer mit Schrägstrichen vom Finanzamt — sie steht oben auf dem Steuerbescheid.</p>
+<p><b>Nummernkreis:</b> Rechnungsnummern müssen fortlaufend und eindeutig sein. Der Kreis sollte zum Jahr passen, in dem du die Rechnung schreibst.</p>`,
+
+recZu:`<p>Amtlicher Nachweis über alle Zugänge: Zukauf und eigener Einsatz, mit Herkunft.</p>`,
+recAb:`<p>Amtlicher Nachweis über alle Abgänge, mit Empfänger und Anschrift. Füllt sich aus deinen Abgangsbuchungen von selbst.</p>`,
+recMort:`<p>Nur die Fälle, bei denen du <b>erhöhte Sterblichkeit</b> angekreuzt hast — nicht die normalen Verluste.</p>`,
+recTb:`<p>Das Betriebstagebuch aus allen Teichprotokollen, nach Datum sortiert.</p>`
+};
+
+const HELP_VIEW={
+viewList:`<p><b>Willkommen.</b> Jede Karte ist ein Teich oder ein Becken. Antippen öffnet die Details.</p>
+<p>Die orangefarbene Markierung <b>offen</b> heißt: heute noch nicht gefüttert.</p>
+<p>Unter den Teichen findest du drei Bereiche:</p>
+<ul>
+<li><b>Kalkulation</b> — was ein Fisch bringt, Länge und Gewicht umrechnen.</li>
+<li><b>Verkauf &amp; Rechnungen</b> — Kunden, Lieferungen, Rechnungen, Einnahmen.</li>
+<li><b>Nachweise</b> — die amtlichen Blätter und das Betriebstagebuch.</li>
+</ul>
+<p>Jeder Abschnitt hat so ein Fragezeichen wie dieses hier. Antippen erklärt, wofür er da ist.</p>`,
+
+viewCalc:`<p>Hier rechnest du, ohne etwas zu verändern — nichts davon wirkt sich auf deine Teiche aus.</p>
+<p>Der wichtigste Teil ist oben: <b>Besatz oder Speisefisch</b>. Er zeigt beide Wege nebeneinander und rechnet aus, was mehr bringt.</p>`,
+
+viewFinanz:`<p><b>Der Ablauf in vier Schritten:</b></p>
+<ul>
+<li>Kunden einmal anlegen.</li>
+<li>Bei jeder Lieferung Datum und Menge eintragen.</li>
+<li>Am Quartalsende Rechnung erzeugen.</li>
+<li>Wenn das Geld da ist, als bezahlt buchen.</li>
+</ul>
+<p>Privatverkauf am Teich läuft ohne Rechnung — dafür gibt es einen eigenen Abschnitt.</p>`,
+
+viewInvoice:`<p>Die fertige Rechnung. Mit <b>Drucken</b> öffnet sich das Druckfenster — dort kannst du auch als PDF sichern und dann verschicken.</p>
+<p>Kommt das Geld an, tippe auf <b>Als bezahlt buchen</b>. Erst dann zählt die Einnahme.</p>`,
+
+viewRecords:`<p>Die amtlichen Vordrucke, gefüllt aus deinen Buchungen. Zeitraum wählen, dann steht alles fertig da.</p>`,
+
+viewWeather:`<p><b>Was die Ampel bedeutet:</b> grün wenig Regen, gelb mittel, rot viel Regen oder eine amtliche Warnung.</p>
+<p><b>Das Ankunftsfenster</b> ist der wichtigste Teil: nicht wann es regnet, sondern wann das Wasser bei dir ankommt — sechs bis acht Stunden später.</p>
+<p>Die App warnt nur. Wecken lassen musst du dich weiter von NINA.</p>`
+};
+
+function makeQ(txt){
+  const q=document.createElement('span');
+  q.className='qmark'; q.textContent='?';
+  q.setAttribute('role','button');
+  q.setAttribute('aria-label','Erklärung');
+  const box=document.createElement('div');
+  box.className='helpbox'; box.innerHTML=txt;
+  q.addEventListener('click',e=>{
+    e.stopPropagation();
+    const on=!box.classList.contains('on');
+    box.classList.toggle('on',on);
+    q.classList.toggle('on',on);
+  });
+  return {q,box};
+}
+
+function initHelp(){
+  // Abschnitte
+  document.querySelectorAll('.card[data-fold]').forEach(card=>{
+    const txt=HELP[card.dataset.fold]; if(!txt)return;
+    const head=card.querySelector('.foldhead'); if(!head)return;
+    const h2=head.querySelector('h2'); if(!h2)return;
+    const {q,box}=makeQ(txt);
+    h2.appendChild(q);
+    head.insertAdjacentElement('afterend',box);
+  });
+  // Ansichten
+  Object.entries(HELP_VIEW).forEach(([vid,txt])=>{
+    const v=document.getElementById(vid); if(!v)return;
+    const h1=v.querySelector('header.top h1'); if(!h1)return;
+    const {q,box}=makeQ(txt);
+    h1.appendChild(q);
+    const wrap=v.querySelector('.wrap');
+    if(wrap)wrap.insertBefore(box,wrap.firstChild);
+    else v.querySelector('header.top').insertAdjacentElement('afterend',box);
+  });
+}
+
 initFolds();
+initHelp();
 initWeather();
 initCalc();
 initFin();
