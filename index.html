@@ -209,6 +209,61 @@ header.top .hrow{display:flex;align-items:flex-start;justify-content:space-betwe
 .wx-day .dn{flex:1;font-weight:600}
 .wx-day .mm{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--teal-deep);min-width:64px;text-align:right}
 .wx-day .tt{font-family:'JetBrains Mono',monospace;color:var(--ink-soft);min-width:76px;text-align:right}
+/* ---------- Finanzteil ---------- */
+.finrow{display:flex;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px solid var(--line);font-size:14px}
+.finrow:last-child{border-bottom:0}
+.finrow b{white-space:nowrap}
+.finrow .who{color:var(--ink-soft);font-size:12px;display:block;margin-top:2px;font-weight:400}
+.finrow.open b{color:#b4531a}
+.kbox{border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:10px;background:#fff}
+.kbox h4{margin:0 0 4px;font-size:15px}
+.kbox .meta{color:var(--ink-soft);font-size:12.5px;line-height:1.45}
+.kbox .acts{display:flex;gap:8px;margin-top:10px}
+.kbox .acts .btn{margin:0;padding:8px 12px;font-size:13px}
+.finprev{background:#F4F7FA;border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-top:12px}
+.tipline{display:flex;justify-content:space-between;font-size:13.5px;padding:4px 0}
+.tipline.big{font-weight:700;font-size:15px;border-top:1px solid var(--line);margin-top:6px;padding-top:8px}
+
+/* ---------- Rechnungsblatt ---------- */
+#invSheet{background:#fff;color:#111;padding:0 0 24px;font-family:Helvetica,Arial,sans-serif}
+.inv-banner{background:#12305c;color:#fff;text-align:center;padding:18px 10px 14px;border-radius:6px}
+.inv-banner .n1{font-size:27px;font-weight:800;letter-spacing:.3px;line-height:1.1}
+.inv-banner .n2{font-size:13px;font-weight:700;color:#a8c6e8;margin-top:4px}
+.inv-paper{border:1px solid #c9d2de;border-top:0;padding:16px 14px 20px}
+.inv-title{text-align:right;font-size:30px;font-weight:700;color:#12305c;letter-spacing:1px;margin:6px 0 18px}
+.inv-head{display:flex;gap:14px;flex-wrap:wrap}
+.inv-head>div{flex:1 1 46%;min-width:150px}
+.inv-lbl{background:#12305c;color:#fff;font-size:11.5px;font-weight:700;letter-spacing:.4px;padding:4px 8px;margin-bottom:6px}
+.inv-two{display:flex}
+.inv-two .inv-lbl{flex:1;text-align:center;margin-right:2px}
+.inv-two .inv-lbl:last-child{margin-right:0}
+.inv-two.vals{font-size:12.5px;text-align:center;margin-bottom:10px}
+.inv-two.vals div{flex:1}
+.inv-adr{font-size:12.5px;line-height:1.6}
+.inv-adr .me{margin-bottom:12px}
+.inv-tbl{width:100%;border-collapse:collapse;margin-top:18px;font-size:11.5px}
+.inv-tbl th{background:#12305c;color:#fff;font-size:11px;letter-spacing:.3px;padding:5px 6px;text-align:right}
+.inv-tbl th:first-child,.inv-tbl th:nth-child(2){text-align:left}
+.inv-tbl td{padding:5px 6px;text-align:right;border-bottom:1px dotted #b9c3d1}
+.inv-tbl td:first-child,.inv-tbl td:nth-child(2){text-align:left}
+.inv-tbl tr.blank td{height:17px;border-bottom:1px dotted #b9c3d1}
+.inv-foot{display:flex;gap:12px;margin-top:14px;flex-wrap:wrap}
+.inv-thanks{flex:1 1 40%;font-style:italic;font-size:12.5px;padding-top:6px;min-width:120px}
+.inv-sums{flex:1 1 52%;min-width:180px;background:#dce7f4;padding:8px 10px;font-size:12.5px}
+.inv-sums div{display:flex;justify-content:space-between;padding:2px 0}
+.inv-sums div.tot{font-weight:700;font-size:14px;border-top:2px solid #12305c;margin-top:5px;padding-top:5px}
+.inv-note{text-align:center;font-size:10.5px;line-height:1.7;margin-top:16px;color:#333}
+.inv-bank{text-align:center;font-size:10.5px;margin-top:8px;font-weight:600}
+@media print{
+  body{background:#fff}
+  #viewList,#viewDetail,#viewNew,#viewRecords,#viewWeather,#viewCalc,
+  #invBar,.toast,header.top{display:none !important}
+  #viewInvoice{display:block !important}
+  #viewInvoice .wrap{padding:0;max-width:none}
+  #invSheet{padding:0}
+  .inv-banner{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .inv-lbl,.inv-tbl th,.inv-sums{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+}
 </style>
 </head>
 <body>
@@ -231,6 +286,8 @@ header.top .hrow{display:flex;align-items:flex-start;justify-content:space-betwe
     <button class="btn ghost" id="newPondBtn">+ Neuen Teich anlegen</button>
 
     <button class="btn ghost" id="calcBtn" style="margin-top:10px">Kalkulation &amp; Längentabelle</button>
+
+    <button class="btn ghost" id="finBtn" style="margin-top:10px">Verkauf, Rechnungen &amp; Finanzen</button>
 
     <button class="btn ghost" id="recordsBtn" style="margin-top:10px">Nachweise &amp; Betriebstagebuch</button>
 
@@ -411,7 +468,12 @@ header.top .hrow{display:flex;align-items:flex-start;justify-content:space-betwe
         <label>Zielgewicht pro Fisch (g)</label>
         <input type="number" id="targetG" step="10" min="1" placeholder="z.B. 450 (Schlachtgewicht)">
       </div>
+      <div class="field">
+        <label>Sackgröße (kg)</label>
+        <input type="number" id="sackKg" step="1" min="1" inputmode="decimal" placeholder="25">
+      </div>
       <div id="prognosisOut"></div>
+      <div id="grainPlan"></div>
     </div>
 
     <div class="card" data-fold="vergleich">
@@ -737,6 +799,165 @@ header.top .hrow{display:flex;align-items:flex-start;justify-content:space-betwe
   </div>
 </div>
 
+<!-- ============ FINANZEN ============ -->
+<div id="viewFinanz" class="hidden">
+  <header class="top">
+    <div class="backlink" id="finBackBtn">← Alle Teiche</div>
+    <h1>Verkauf &amp; Rechnungen</h1>
+    <p class="sub" id="finSub"></p>
+  </header>
+  <div class="wrap">
+
+    <div id="finMahnung"></div>
+
+    <div class="card" data-fold="finLief">
+      <h2>Lieferung erfassen</h2>
+      <div class="hint" style="margin-bottom:12px">Jede Lieferung einzeln eintragen — Lieferschein bleibt im Ordner, hier stehen nur die Zahlen. Am Quartalsende macht die App daraus die Rechnung, eine Zeile je Lieferung.</div>
+      <div class="field">
+        <label>Kunde</label>
+        <select id="lfKunde"></select>
+      </div>
+      <div class="row2">
+        <div class="field"><label>Lieferdatum</label><input type="date" id="lfDatum"></div>
+        <div class="field"><label id="lfMengeLbl">Gewicht (kg)</label><input type="number" id="lfMenge" step="0.01" min="0" inputmode="decimal" placeholder="12,6"></div>
+      </div>
+      <div class="row2" id="lfBesatzRow" style="display:none">
+        <div class="field"><label>Größe</label><input type="text" id="lfGroesse" placeholder="z.B. 15–18 cm"></div>
+        <div class="field"><label>Fischart</label><select id="lfArt"></select></div>
+      </div>
+      <div class="row2">
+        <div class="field"><label id="lfPreisLbl">Preis je kg (€)</label><input type="number" id="lfPreis" step="0.01" min="0" inputmode="decimal"></div>
+        <div class="field"><label>Teich (optional)</label><select id="lfPond"></select></div>
+      </div>
+      <div class="field">
+        <label>Bemerkung (optional)</label>
+        <input type="text" id="lfNote" placeholder="z.B. Lieferschein Nr. 14">
+      </div>
+      <div id="lfOut"></div>
+      <button class="btn" id="lfAdd">Lieferung eintragen</button>
+    </div>
+
+    <div class="card" data-fold="finOffen">
+      <h2>Noch nicht abgerechnet</h2>
+      <div id="finOffenOut"></div>
+    </div>
+
+    <div class="card" data-fold="finPriv">
+      <h2>Privatverkauf am Teich</h2>
+      <div class="hint" style="margin-bottom:12px">Ohne Rechnung — nur als Einnahme. Der berechnete Preis zählt für die Preisliste, das Trinkgeld wird getrennt geführt.</div>
+      <div class="row2">
+        <div class="field"><label>Datum</label><input type="date" id="pvDatum"></div>
+        <div class="field"><label>Teich</label><select id="pvPond"></select></div>
+      </div>
+      <div class="row2">
+        <div class="field"><label>Stückzahl</label><input type="number" id="pvPcs" step="1" min="0" inputmode="numeric" placeholder="6"></div>
+        <div class="field"><label>Gewicht gesamt (kg)</label><input type="number" id="pvKg" step="0.01" min="0" inputmode="decimal" placeholder="2,3"></div>
+      </div>
+      <div class="row2">
+        <div class="field"><label>Preis je kg (€)</label><input type="number" id="pvPreis" step="0.01" min="0" inputmode="decimal"></div>
+        <div class="field"><label>Bekommen (€)</label><input type="number" id="pvBek" step="0.5" min="0" inputmode="decimal" placeholder="gerundet"></div>
+      </div>
+      <div id="pvOut"></div>
+      <button class="btn" id="pvAdd">Verkauf eintragen</button>
+      <div id="pvListe" style="margin-top:16px"></div>
+    </div>
+
+    <div class="card" data-fold="finRech">
+      <h2>Rechnungsbuch</h2>
+      <div id="finRechOut"></div>
+    </div>
+
+    <div class="card" data-fold="finKunden">
+      <h2>Kunden</h2>
+      <div id="finKundenOut"></div>
+      <div class="arrowbox" id="kdBox" style="margin-top:12px">
+        <h3 id="kdTitel">Neuer Kunde</h3>
+        <div class="field"><label>Name</label><input type="text" id="kdName" placeholder="z.B. EDEKA Werner"></div>
+        <div class="field"><label>Zusatz / Ansprechpartner (optional)</label><input type="text" id="kdZusatz" placeholder="z.B. Angelika Lenk"></div>
+        <div class="field"><label>Straße</label><input type="text" id="kdStr" placeholder="Krummwiese 4"></div>
+        <div class="row2">
+          <div class="field"><label>PLZ</label><input type="text" id="kdPlz" inputmode="numeric" placeholder="63916"></div>
+          <div class="field"><label>Ort</label><input type="text" id="kdOrt" placeholder="Amorbach"></div>
+        </div>
+        <div class="row2">
+          <div class="field"><label>Kunden-ID</label><input type="text" id="kdNr" inputmode="numeric" placeholder="565"></div>
+          <div class="field"><label>Preis je kg / je Stück (€)</label><input type="number" id="kdPreis" step="0.01" min="0" inputmode="decimal" placeholder="10,00"></div>
+        </div>
+        <div class="row2">
+          <div class="field"><label>Was wird geliefert</label><select id="kdArt">
+            <option value="speise">Speisefisch (nach kg)</option>
+            <option value="besatz">Besatzfisch (nach Stück)</option>
+          </select></div>
+          <div class="field"><label>Abrechnung</label><select id="kdTakt">
+            <option value="quartal">Quartalsweise</option>
+            <option value="einzeln">Je Lieferung</option>
+          </select></div>
+        </div>
+        <div class="field"><label>Zahlungsbedingung</label><input type="text" id="kdZiel" placeholder="Fällig bei Erhalt"></div>
+        <div class="btn-row">
+          <button class="btn" id="kdSave">Kunde speichern</button>
+          <button class="btn ghost hidden" id="kdCancel">Abbrechen</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" data-fold="finStamm">
+      <h2>Rechnungsdaten</h2>
+      <div class="hint" style="margin-bottom:12px">Kopf und Fuß jeder Rechnung. Einmal ausfüllen, steht dann überall drin.</div>
+      <div class="field"><label>Betriebsname (Banner)</label><input type="text" id="stBanner" placeholder="Hölzler's Forellental"></div>
+      <div class="field"><label>Zusatz im Banner</label><input type="text" id="stBanner2" placeholder="Direktvermarktung"></div>
+      <div class="field"><label>Name</label><input type="text" id="stName" placeholder="Alexander Hölzler"></div>
+      <div class="field"><label>Straße</label><input type="text" id="stStr" placeholder="Frühlingstr. 23"></div>
+      <div class="row2">
+        <div class="field"><label>PLZ</label><input type="text" id="stPlz" inputmode="numeric" placeholder="63931"></div>
+        <div class="field"><label>Ort</label><input type="text" id="stOrt" placeholder="Kirchzell"></div>
+      </div>
+      <div class="field">
+        <label>Steuernummer</label>
+        <input type="text" id="stSteuer" placeholder="z.B. 204/123/45678">
+        <div class="hint">Pflichtangabe nach § 14 UStG. Nicht die Steuer-ID mit elf Ziffern, sondern die Nummer mit Schrägstrichen vom Finanzamt — steht oben auf dem Steuerbescheid.</div>
+      </div>
+      <div class="row2">
+        <div class="field"><label>Mobil</label><input type="text" id="stMobil" placeholder="0170/1234567"></div>
+        <div class="field"><label>Telefon</label><input type="text" id="stTel" placeholder="09373/1234"></div>
+      </div>
+      <div class="field"><label>E-Mail</label><input type="text" id="stMail" placeholder="name@icloud.com"></div>
+      <div class="field"><label>Bank</label><input type="text" id="stBank" placeholder="Sparkasse Aschaffenburg - Miltenberg"></div>
+      <div class="row2">
+        <div class="field"><label>IBAN</label><input type="text" id="stIban" placeholder="DE.."></div>
+        <div class="field"><label>BIC</label><input type="text" id="stBic" placeholder="BYLADEM1ASA"></div>
+      </div>
+      <div class="row2">
+        <div class="field"><label>Umsatzsteuer (%)</label><input type="number" id="stUst" step="0.01" min="0" inputmode="decimal" placeholder="7,80"></div>
+        <div class="field"><label>Steuervorschrift</label><input type="text" id="stUstText" placeholder="§ 24 UStG"></div>
+      </div>
+      <div class="row2">
+        <div class="field"><label>Nummernkreis</label><input type="text" id="stKreis" inputmode="numeric" placeholder="2026"></div>
+        <div class="field"><label>Nächste Nummer</label><input type="number" id="stNext" step="1" min="1" inputmode="numeric" placeholder="48"></div>
+      </div>
+      <div class="hint" style="margin-bottom:12px">Ergibt zum Beispiel <b id="stVorschau">2026048</b>. Der Kreis sollte zum Jahr der Rechnung passen.</div>
+      <button class="btn" id="stSave">Rechnungsdaten speichern</button>
+    </div>
+
+  </div>
+</div>
+
+<!-- ============ RECHNUNG ============ -->
+<div id="viewInvoice" class="hidden">
+  <header class="top">
+    <div class="backlink" id="invBackBtn">← Zurück</div>
+    <h1>Rechnung</h1>
+    <p class="sub" id="invSub"></p>
+  </header>
+  <div class="wrap">
+    <div id="invBar" class="btn-row" style="margin-bottom:14px">
+      <button class="btn" id="invPrint">Drucken / als PDF sichern</button>
+      <button class="btn ghost" id="invPaid">Als bezahlt buchen</button>
+    </div>
+    <div id="invSheet"></div>
+  </div>
+</div>
+
 <script>
 const TEMPS=[2,4,6,8,10,12,14,16,18];
 const PRODUCTS={
@@ -903,7 +1124,7 @@ async function load(){
 
 /* ---------- views ---------- */
 function show(v){
-  ['viewList','viewDetail','viewNew','viewRecords','viewWeather','viewCalc'].forEach(id=>document.getElementById(id).classList.add('hidden'));
+  ['viewList','viewDetail','viewNew','viewRecords','viewWeather','viewCalc','viewFinanz','viewInvoice'].forEach(id=>document.getElementById(id).classList.add('hidden'));
   document.getElementById(v).classList.remove('hidden');
   window.scrollTo(0,0);
 }
@@ -1104,6 +1325,7 @@ function renderDetail(){
   setSum('verwalten', p.name+(siteOf(p)!==NOSITE?' · '+siteOf(p):''));
 
   const sim=renderPrognosis(p);
+  renderGrainPlan(p,parseFloat(document.getElementById('targetG').value));
   renderCompare(p);
   renderChart(p,sim);
   renderManual(p);
@@ -1113,6 +1335,42 @@ function renderDetail(){
 }
 
 /* ---------- Simulation ---------- */
+/* Welches Futter passt zu welchem Fischgewicht — so, wie du es real fütterst */
+function chainFeedFor(avg,mastKey){
+  if(avg<15) return 'brut';
+  if(avg<40) return 'futura2';
+  return mastKey;
+}
+function sackSize(){
+  const v=parseFloat(String((document.getElementById('sackKg')||{}).value||'').replace(',','.'));
+  return v>0?v:25;
+}
+function renderGrainPlan(pond,targetG){
+  const box=document.getElementById('grainPlan');
+  if(!box)return;
+  if(!(targetG>pond.avgG)){box.innerHTML='';return}
+  let s=null;
+  try{s=simulate(pond,targetG,{chain:true,maxDays:1600})}catch(e){}
+  if(!s||!s.reached||!s.grains.length){box.innerHTML='';return}
+  const sack=sackSize();
+  const rows=s.grains.map(g=>{
+    const saecke=g.kg/sack;
+    const kauf=Math.max(1,Math.round(saecke*2)/2);
+    return `<div class="calcrow">
+      <span><b style="font-family:'JetBrains Mono',monospace">${g.mm}</b> · ${g.name}<br>
+        <span style="color:var(--ink-soft);font-size:11.5px">${fmt(g.fromG,g.fromG<10?1:0)}–${fmt(g.toG,0)} g · ${g.days} Tage</span></span>
+      <span>${fmt(g.kg,g.kg<10?2:1)} kg<br><span style="font-size:11.5px;color:var(--ink-soft)">${fmt(kauf,kauf%1?1:0)} Sack</span></span>
+    </div>`;
+  }).join('');
+  const total=s.grains.reduce((a,g)=>a+g.kg,0);
+  box.innerHTML=`<div class="arrowbox" style="margin-top:14px">
+    <h3>Was du einkaufen musst</h3>
+    <div class="hint" style="margin-bottom:10px">Von ${fmt(pond.avgG,pond.avgG<10?1:0)} g bis ${fmt(targetG,0)} g, mit Futterwechsel wie in der Praxis: Brutfutter bis 15 g, Futura 2 mm bis 40 g, danach Mastfutter.</div>
+    ${rows}
+    <div class="calcrow sum"><span>Gesamt · ${s.days} Tage</span><span>${fmt(total,1)} kg</span></div>
+    <div class="hint" style="margin-top:10px">Nach Tabelle gerechnet. In der Praxis brauchst du von den kleinen Korngrößen meist weniger, weil die Fische schneller durchwachsen — die großen Größen fütterst du dafür länger.</div>
+  </div>`;
+}
 function simulate(pond,targetG,opts){
   opts=opts||{};
   const feedKey=opts.feed||pond.feed;
@@ -1124,6 +1382,9 @@ function simulate(pond,targetG,opts){
   let bio=pond.totalKg, avg=pond.avgG, feedTotal=0, days=0;
   const track=[{d:0,avg,bio}];
   const hits=[]; let mi=0;
+  const chain=!!opts.chain;
+  const mastKey=(PRODUCTS[pond.feed]&&PRODUCTS[pond.feed].type==='Mastfutter')?pond.feed:'gold';
+  const grains=[]; let gi=null;
   const p=PRODUCTS[feedKey];
   // Fütterst du weniger als empfohlen, wächst es entsprechend langsamer
   const base=dailyFor(pond).kg;
@@ -1132,12 +1393,18 @@ function simulate(pond,targetG,opts){
   // Deckt das Futter den Zielbereich überhaupt ab?
   const maxClass=p.classes[p.classes.length-1].max;
   while(days<maxDays && avg<targetG){
-    const c=pickClass(p,avg);
+    const prod=chain?PRODUCTS[chainFeedFor(avg,mastKey)]:p;
+    const stepFcr=chain?(opts.fcr!=null?opts.fcr:prod.defFcr):fcr;
+    const c=pickClass(prod,avg);
     const per100=interpTemp(c.vals,pond.temp);
     const feed=(per100/100)*bio*fac;
     feedTotal+=feed;
-    bio+=feed/fcr;
+    const gkey=prod.name+'|'+c.mm;
+    if(!gi||gi.key!==gkey){gi={key:gkey,name:prod.name,mm:c.mm,kg:0,days:0,fromG:avg,toG:avg};grains.push(gi)}
+    gi.kg+=feed; gi.days++;
+    bio+=feed/stepFcr;
     avg=bio*1000/count;
+    if(gi)gi.toG=avg;
     days++;
     while(mi<marks.length && avg>=marks[mi]){
       hits.push({g:marks[mi],days,feed:feedTotal,bio});
@@ -1146,7 +1413,7 @@ function simulate(pond,targetG,opts){
     if(days%7===0) track.push({d:days,avg,bio});
   }
   track.push({d:days,avg,bio});
-  return {days,feedTotal,bio,avg,track,hits,count,
+  return {days,feedTotal,bio,avg,track,hits,count,grains,
           reached:avg>=targetG, covers:targetG<=maxClass, product:p, fcr};
 }
 
@@ -1238,6 +1505,7 @@ function renderCompare(p){
     <div class="hint" style="margin-top:10px">
       Schnellster Weg zu ${fmt(t,0)} g: <b>${best.prod.name}</b> in ${best.s.days} Tagen mit ${fmt(best.s.feedTotal,1)} kg Futter.
       Gerechnet mit dem typischen Futterquotienten je Sorte. ● markiert dein aktuelles Futter.
+      Eine Sorte allein deckt die ganze Mast selten ab — was du wirklich brauchst, steht oben unter „Was du einkaufen musst".
     </div>`;
 }
 
@@ -1918,11 +2186,19 @@ document.getElementById('noFeedBtn').addEventListener('click',async()=>{
   toast('Fastentag eingetragen — kein Futter, kein Zuwachs.');
 });
 
+document.getElementById('sackKg').addEventListener('input',e=>{
+  const v=parseFloat(String(e.target.value).replace(',','.'));
+  if(v>0){calc.sack=v; calcSave();}
+  const p=ponds.find(x=>x.id===currentId);
+  if(p) renderGrainPlan(p,parseFloat(document.getElementById('targetG').value));
+});
+
 document.getElementById('targetG').addEventListener('input',async e=>{
   const p=ponds.find(x=>x.id===currentId);
   if(!p)return;
   p.targetG=parseFloat(e.target.value)||null;
   const sim=renderPrognosis(p);
+  renderGrainPlan(p,parseFloat(document.getElementById('targetG').value));
   renderCompare(p);
   renderChart(p,sim);
   await save();
@@ -2622,9 +2898,485 @@ function initCalc(){
   });
 }
 
+/* ================= Finanzen, Lieferungen, Rechnungen ================= */
+const FINKEY='fischzucht-finanz';
+const FIN_DEF={
+  stamm:{banner:"Hölzler's Forellental",banner2:'Direktvermarktung',
+    name:'',str:'',plz:'',ort:'',steuer:'',mobil:'',tel:'',mail:'',
+    bank:'',iban:'',bic:'',ust:7.8,ustText:'§ 24 UStG',
+    kreis:String(new Date().getFullYear()),next:1},
+  kunden:[], lief:[], priv:[], rech:[]
+};
+let fin=JSON.parse(JSON.stringify(FIN_DEF));
+let kdEdit=null, invShow=null;
+
+function finLoad(){
+  try{
+    const r=localStorage.getItem(FINKEY);
+    if(r){
+      const j=JSON.parse(r);
+      fin=Object.assign(JSON.parse(JSON.stringify(FIN_DEF)),j);
+      fin.stamm=Object.assign({},FIN_DEF.stamm,j.stamm||{});
+      ['kunden','lief','priv','rech'].forEach(k=>{if(!Array.isArray(fin[k]))fin[k]=[]});
+    }
+  }catch(e){}
+}
+function finSave(){try{localStorage.setItem(FINKEY,JSON.stringify(fin))}catch(e){}}
+function uid(){return Math.random().toString(36).slice(2,9)}
+function eur2(n){return Number(n||0).toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2})+' €'}
+function esc(t){return String(t==null?'':t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+function num(el,fb){if(!el)return fb;const v=parseFloat(String(el.value).replace(',','.'));return isNaN(v)?fb:v}
+function kundeById(id){return fin.kunden.find(k=>k.id===id)||null}
+function quartalOf(iso){const m=parseInt(iso.slice(5,7),10);return iso.slice(0,4)+'-Q'+Math.ceil(m/3)}
+
+/* ---------- Kunden ---------- */
+function renderKunden(){
+  const box=document.getElementById('finKundenOut');
+  if(!fin.kunden.length){
+    box.innerHTML='<div class="empty">Noch kein Kunde angelegt.</div>';
+  } else {
+    box.innerHTML=fin.kunden.map(k=>{
+      const off=fin.lief.filter(l=>l.kundeId===k.id&&!l.rechId);
+      const sum=off.reduce((a,l)=>a+l.betrag,0);
+      return `<div class="kbox">
+        <h4>${esc(k.name)}</h4>
+        <div class="meta">
+          ${k.zusatz?esc(k.zusatz)+'<br>':''}${esc(k.str)}${k.str?'<br>':''}${esc(k.plz)} ${esc(k.ort)}<br>
+          Kunden-ID ${esc(k.nr||'–')} · ${k.art==='besatz'?'Besatzfisch, '+eur2(k.preis)+' je Stück':'Speisefisch, '+eur2(k.preis)+' je kg'}<br>
+          ${k.takt==='quartal'?'Quartalsweise':'Je Lieferung'}${off.length?` · <b style="color:#b4531a">${off.length} offen, ${eur2(sum)}</b>`:''}
+        </div>
+        <div class="acts">
+          <button class="btn ghost" data-kdedit="${k.id}">Ändern</button>
+          ${off.length?`<button class="btn" data-kdrech="${k.id}">Rechnung erzeugen</button>`:''}
+        </div>
+      </div>`;
+    }).join('');
+  }
+  const sel=document.getElementById('lfKunde');
+  const keep=sel.value;
+  sel.innerHTML=fin.kunden.length
+    ? fin.kunden.map(k=>`<option value="${k.id}">${esc(k.name)}</option>`).join('')
+    : '<option value="">— erst einen Kunden anlegen —</option>';
+  if(keep&&fin.kunden.some(k=>k.id===keep))sel.value=keep;
+  lfSync();
+}
+
+function kdFill(k){
+  kdEdit=k?k.id:null;
+  document.getElementById('kdTitel').textContent=k?'Kunde ändern':'Neuer Kunde';
+  document.getElementById('kdCancel').classList.toggle('hidden',!k);
+  const v=(id,val)=>document.getElementById(id).value=val==null?'':val;
+  v('kdName',k&&k.name); v('kdZusatz',k&&k.zusatz); v('kdStr',k&&k.str);
+  v('kdPlz',k&&k.plz); v('kdOrt',k&&k.ort); v('kdNr',k&&k.nr);
+  v('kdPreis',k&&k.preis); v('kdZiel',k&&k.ziel);
+  document.getElementById('kdArt').value=k?k.art:'speise';
+  document.getElementById('kdTakt').value=k?k.takt:'quartal';
+}
+
+/* ---------- Lieferung ---------- */
+function lfSync(){
+  const k=kundeById(document.getElementById('lfKunde').value);
+  const besatz=!!(k&&k.art==='besatz');
+  document.getElementById('lfBesatzRow').style.display=besatz?'':'none';
+  document.getElementById('lfMengeLbl').textContent=besatz?'Stückzahl':'Gewicht (kg)';
+  document.getElementById('lfPreisLbl').textContent=besatz?'Preis je Stück (€)':'Preis je kg (€)';
+  document.getElementById('lfMenge').placeholder=besatz?'500':'12,6';
+  const pe=document.getElementById('lfPreis');
+  if(k&&!pe.value)pe.value=k.preis;
+  lfPreview();
+}
+function lfPreview(){
+  const k=kundeById(document.getElementById('lfKunde').value);
+  const menge=num(document.getElementById('lfMenge'),0);
+  const preis=num(document.getElementById('lfPreis'),k?k.preis:0);
+  const out=document.getElementById('lfOut');
+  if(!k||!(menge>0)||!(preis>0)){out.innerHTML='';return}
+  const besatz=k.art==='besatz';
+  const netto=menge*preis;
+  out.innerHTML=`<div class="finprev">
+    <div class="tipline"><span>${besatz?fmt(menge,0)+' Stück':fmt(menge,2)+' kg'} × ${eur2(preis)}</span><b>${eur2(netto)}</b></div>
+    <div class="hint" style="margin-top:6px">${k.takt==='quartal'?'Wird gesammelt und am Quartalsende abgerechnet.':'Kann sofort abgerechnet werden.'}</div>
+  </div>`;
+}
+
+/* ---------- Offene Lieferungen ---------- */
+function renderOffen(){
+  const box=document.getElementById('finOffenOut');
+  const off=fin.lief.filter(l=>!l.rechId);
+  if(!off.length){box.innerHTML='<div class="empty">Alles abgerechnet.</div>';return}
+  const byK={};
+  off.forEach(l=>{(byK[l.kundeId]=byK[l.kundeId]||[]).push(l)});
+  box.innerHTML=Object.entries(byK).map(([kid,ls])=>{
+    const k=kundeById(kid);
+    const sum=ls.reduce((a,l)=>a+l.betrag,0);
+    const qs=[...new Set(ls.map(l=>quartalOf(l.datum)))];
+    return `<div class="kbox">
+      <h4>${k?esc(k.name):'Unbekannt'}</h4>
+      ${ls.sort((a,b)=>a.datum<b.datum?-1:1).map(l=>`<div class="finrow">
+        <span>${deDate(l.datum)}
+          <span class="who">${l.besatz?fmt(l.menge,0)+' Stück'+(l.groesse?' · '+esc(l.groesse):''):fmt(l.menge,2)+' kg'} × ${eur2(l.preis)}${l.note?' · '+esc(l.note):''}</span>
+        </span>
+        <span style="text-align:right"><b>${eur2(l.betrag)}</b>
+          <span class="who"><a href="#" data-lfdel="${l.id}" style="color:#b4531a">löschen</a></span>
+        </span>
+      </div>`).join('')}
+      <div class="tipline big"><span>Summe netto${qs.length===1?' · '+qs[0].replace('-',' '):''}</span><span>${eur2(sum)}</span></div>
+      <div class="acts"><button class="btn" data-kdrech="${kid}">Rechnung erzeugen</button></div>
+    </div>`;
+  }).join('');
+}
+
+/* ---------- Privatverkauf ---------- */
+function pvPreview(){
+  const kg=num(document.getElementById('pvKg'),0);
+  const preis=num(document.getElementById('pvPreis'),0);
+  const bek=num(document.getElementById('pvBek'),0);
+  const out=document.getElementById('pvOut');
+  if(!(kg>0)||!(preis>0)){out.innerHTML='';return}
+  const exakt=kg*preis;
+  const ger=Math.round(exakt);
+  const trink=bek>0?bek-exakt:0;
+  out.innerHTML=`<div class="finprev">
+    <div class="tipline"><span>${fmt(kg,2)} kg × ${eur2(preis)}</span><span>${eur2(exakt)}</span></div>
+    <div class="tipline"><span>gerundet</span><span>${eur2(ger)}</span></div>
+    ${bek>0?`<div class="tipline"><span>bekommen</span><span>${eur2(bek)}</span></div>
+      <div class="tipline big"><span>davon Trinkgeld</span><span>${trink>=0?'+':''}${eur2(trink)}</span></div>`
+    :`<div class="hint" style="margin-top:6px">Leer lassen = es bleibt bei ${eur2(ger)}.</div>`}
+  </div>`;
+}
+function renderPriv(){
+  const box=document.getElementById('pvListe');
+  const list=fin.priv.slice().sort((a,b)=>a.datum<b.datum?1:-1).slice(0,12);
+  if(!list.length){box.innerHTML='<div class="empty">Noch kein Privatverkauf gebucht.</div>';return}
+  const sumE=fin.priv.reduce((a,x)=>a+x.fisch,0);
+  const sumT=fin.priv.reduce((a,x)=>a+x.trink,0);
+  box.innerHTML=`<h3 style="font-size:15px;margin:0 0 8px">Letzte Verkäufe</h3>`
+    +list.map(x=>{
+      const p=ponds.find(q=>q.id===x.pondId);
+      return `<div class="finrow">
+        <span>${deDate(x.datum)}
+          <span class="who">${x.pcs?x.pcs+' Stück · ':''}${fmt(x.kg,2)} kg${p?' · '+esc(p.name):''}${x.trink?' · Trinkgeld '+eur2(x.trink):''}</span>
+        </span>
+        <span style="text-align:right"><b>${eur2(x.bekommen)}</b>
+          <span class="who"><a href="#" data-pvdel="${x.id}" style="color:#b4531a">löschen</a></span>
+        </span>
+      </div>`}).join('')
+    +`<div class="tipline big"><span>Gesamt ${fin.priv.length} Verkäufe</span><span>${eur2(sumE+sumT)}</span></div>
+      <div class="hint">Davon ${eur2(sumE)} für Fisch und ${eur2(sumT)} Trinkgeld.</div>`;
+}
+
+/* ---------- Rechnungsbuch ---------- */
+function renderRechBuch(){
+  const box=document.getElementById('finRechOut');
+  if(!fin.rech.length){box.innerHTML='<div class="empty">Noch keine Rechnung erzeugt.</div>';return}
+  box.innerHTML=fin.rech.slice().sort((a,b)=>a.nr<b.nr?1:-1).map(r=>`<div class="finrow ${r.bezahlt?'':'open'}">
+    <span>${esc(r.nr)} · ${esc(r.kunde.name)}
+      <span class="who">${deDate(r.datum)} · ${r.bezahlt?'bezahlt am '+deDate(r.bezahlt):'offen'}</span>
+    </span>
+    <span style="text-align:right"><b>${eur2(r.brutto)}</b>
+      <span class="who"><a href="#" data-invopen="${r.id}">ansehen</a></span>
+    </span>
+  </div>`).join('');
+}
+
+/* ---------- Mahnung / offene Posten ---------- */
+function renderMahnung(){
+  const box=document.getElementById('finMahnung');
+  const offen=fin.rech.filter(r=>!r.bezahlt);
+  const sum=offen.reduce((a,r)=>a+r.brutto,0);
+  box.innerHTML=offen.length
+    ? `<div class="notice" style="margin-bottom:14px"><b>${offen.length} Rechnung${offen.length===1?'':'en'} noch nicht bezahlt</b> — zusammen ${eur2(sum)}. ${offen.slice(0,3).map(r=>esc(r.nr)+' ('+esc(r.kunde.name)+')').join(', ')}${offen.length>3?' und weitere':''}.</div>`
+    : '';
+}
+
+/* ---------- Rechnung erzeugen ---------- */
+function rechNr(){
+  const st=fin.stamm;
+  const n=Math.max(1,parseInt(st.next,10)||1);
+  return String(st.kreis||'')+String(n).padStart(3,'0');
+}
+function makeRechnung(kid){
+  const k=kundeById(kid); if(!k){toast('Kunde nicht gefunden.');return}
+  const ls=fin.lief.filter(l=>l.kundeId===kid&&!l.rechId).sort((a,b)=>a.datum<b.datum?-1:1);
+  if(!ls.length){toast('Keine offenen Lieferungen.');return}
+  if(!fin.stamm.steuer&&!confirm('Die Steuernummer fehlt noch — sie ist Pflicht auf der Rechnung. Trotzdem erzeugen?'))return;
+  const netto=ls.reduce((a,l)=>a+l.betrag,0);
+  const satz=Number(fin.stamm.ust)||0;
+  const steuer=Math.round(netto*satz)/100;
+  const r={
+    id:uid(), nr:rechNr(), datum:today(), art:k.art,
+    kunde:{name:k.name,zusatz:k.zusatz,str:k.str,plz:k.plz,ort:k.ort,nr:k.nr,ziel:k.ziel},
+    stamm:JSON.parse(JSON.stringify(fin.stamm)),
+    zeilen:ls.map(l=>({datum:l.datum,text:l.text,menge:l.menge,preis:l.preis,
+      betrag:l.betrag,besatz:l.besatz,groesse:l.groesse})),
+    netto:Math.round(netto*100)/100, satz, steuer,
+    brutto:Math.round((netto+steuer)*100)/100,
+    bezahlt:null
+  };
+  ls.forEach(l=>l.rechId=r.id);
+  fin.rech.push(r);
+  fin.stamm.next=(parseInt(fin.stamm.next,10)||1)+1;
+  finSave();
+  renderFinAll();
+  openInvoice(r.id);
+  toast('Rechnung '+r.nr+' erzeugt.');
+}
+
+/* ---------- Rechnungsblatt ---------- */
+function invoiceHTML(r){
+  const st=r.stamm||fin.stamm, k=r.kunde;
+  const besatz=r.art==='besatz';
+  const rows=r.zeilen.map(z=>`<tr>
+      <td>${deDate(z.datum)}</td>
+      <td>${esc(z.text)}${z.groesse?' '+esc(z.groesse):''}</td>
+      <td>${besatz?fmt(z.menge,0):fmt(z.menge,2)}</td>
+      <td>${eur2(z.preis)}</td>
+      <td>${eur2(z.betrag)}</td>
+    </tr>`).join('');
+  const blanks=Math.max(0,6-r.zeilen.length);
+  const filler='<tr class="blank"><td></td><td></td><td></td><td></td><td></td></tr>'.repeat(blanks);
+  return `
+  <div class="inv-banner">
+    <div class="n1">${esc(st.banner)}</div>
+    ${st.banner2?`<div class="n2">${esc(st.banner2)}</div>`:''}
+  </div>
+  <div class="inv-paper">
+    <div class="inv-title">RECHNUNG</div>
+    <div class="inv-head">
+      <div>
+        <div class="inv-adr me">
+          <b>${esc(st.name)}</b><br>${esc(st.str)}<br>${esc(st.plz)} ${esc(st.ort)}
+          ${st.steuer?'<br>Steuernummer '+esc(st.steuer):''}
+        </div>
+        <div class="inv-lbl">RECHNUNGSADRESSE</div>
+        <div class="inv-adr">
+          ${esc(k.name)}${k.zusatz?'<br>'+esc(k.zusatz):''}<br>
+          ${esc(k.str)}<br>${esc(k.plz)} ${esc(k.ort)}
+        </div>
+      </div>
+      <div>
+        <div class="inv-two"><div class="inv-lbl">RECHNUNG NR.</div><div class="inv-lbl">DATUM</div></div>
+        <div class="inv-two vals"><div>${esc(r.nr)}</div><div>${deDate(r.datum)}</div></div>
+        <div class="inv-two"><div class="inv-lbl">KUNDEN-ID</div><div class="inv-lbl">BEDINGUNGEN</div></div>
+        <div class="inv-two vals"><div>${esc(k.nr||'')}</div><div>${esc(k.ziel||'')}</div></div>
+      </div>
+    </div>
+    <table class="inv-tbl">
+      <tr><th>LIEFERUNG</th><th>BESCHREIBUNG</th><th>${besatz?'STÜCK':'KG'}</th><th>EINZELPREIS</th><th>BETRAG</th></tr>
+      ${rows}${filler}
+    </table>
+    <div class="inv-foot">
+      <div class="inv-thanks">Vielen Dank für Ihre Bestellung!</div>
+      <div class="inv-sums">
+        <div><span>ZWISCHENSUMME</span><span>${eur2(r.netto)}</span></div>
+        <div><span>Umsatzsteuer ${esc(st.ustText||'')}</span><span>${fmt(r.satz,2)} %</span></div>
+        <div><span>STEUER</span><span>${eur2(r.steuer)}</span></div>
+        <div class="tot"><span>Rechnungsbetrag</span><span>${eur2(r.brutto)}</span></div>
+      </div>
+    </div>
+    <div class="inv-note">
+      Bitte wenden Sie sich mit Fragen zu dieser Rechnung an:<br>
+      ${st.mobil?'Mobil: '+esc(st.mobil)+', ':''}${st.tel?'Telefon: '+esc(st.tel)+' ':''}${st.mail?'oder per Mail unter: '+esc(st.mail):''}
+    </div>
+    <div class="inv-bank">${esc(st.bank)}${st.iban?', IBAN: '+esc(st.iban):''}${st.bic?', BIC: '+esc(st.bic):''}</div>
+  </div>`;
+}
+function openInvoice(id){
+  const r=fin.rech.find(x=>x.id===id); if(!r)return;
+  invShow=id;
+  document.getElementById('invSheet').innerHTML=invoiceHTML(r);
+  document.getElementById('invSub').textContent=
+    r.nr+' · '+r.kunde.name+' · '+(r.bezahlt?'bezahlt am '+deDate(r.bezahlt):'offen');
+  document.getElementById('invPaid').textContent=r.bezahlt?'Zahlung zurücknehmen':'Als bezahlt buchen';
+  show('viewInvoice');
+  window.scrollTo(0,0);
+}
+
+/* ---------- Gesamtdarstellung ---------- */
+function renderFinAll(){
+  renderKunden(); renderOffen(); renderPriv(); renderRechBuch(); renderMahnung();
+  const offen=fin.rech.filter(r=>!r.bezahlt).reduce((a,r)=>a+r.brutto,0);
+  const jahr=String(new Date().getFullYear());
+  const ein=fin.rech.filter(r=>r.bezahlt&&r.bezahlt.startsWith(jahr)).reduce((a,r)=>a+r.brutto,0)
+    +fin.priv.filter(p=>p.datum.startsWith(jahr)).reduce((a,p)=>a+p.bekommen,0);
+  document.getElementById('finSub').textContent=
+    `${jahr}: ${eur2(ein)} eingenommen · ${eur2(offen)} noch offen`;
+  setSum('finLief','Kilo und Datum eintragen — Rechnung kommt später');
+  setSum('finOffen',`${fin.lief.filter(l=>!l.rechId).length} Lieferung(en) noch nicht abgerechnet`);
+  setSum('finPriv',`${fin.priv.length} Verkäufe ab Teich`);
+  setSum('finRech',`${fin.rech.length} Rechnung(en) · ${eur2(offen)} offen`);
+  setSum('finKunden',`${fin.kunden.length} Kunde(n)`);
+  setSum('finStamm',fin.stamm.steuer?'Steuernummer hinterlegt':'<b style="color:#b4531a">Steuernummer fehlt noch</b>');
+}
+
+function finPondList(){
+  ['lfPond','pvPond'].forEach(id=>{
+    const sel=document.getElementById(id); const keep=sel.value;
+    sel.innerHTML=(id==='lfPond'?'<option value="">— kein Teich —</option>':'')
+      +ponds.map(p=>`<option value="${p.id}">${esc(p.name)}</option>`).join('');
+    if(keep)sel.value=keep;
+  });
+  const a=document.getElementById('lfArt');
+  if(!a.options.length)a.innerHTML=ARTEN.map(([k,n])=>`<option value="${k}">${n}</option>`).join('');
+}
+function stammFill(){
+  const st=fin.stamm, v=(id,val)=>document.getElementById(id).value=val==null?'':val;
+  v('stBanner',st.banner); v('stBanner2',st.banner2); v('stName',st.name);
+  v('stStr',st.str); v('stPlz',st.plz); v('stOrt',st.ort); v('stSteuer',st.steuer);
+  v('stMobil',st.mobil); v('stTel',st.tel); v('stMail',st.mail);
+  v('stBank',st.bank); v('stIban',st.iban); v('stBic',st.bic);
+  v('stUst',st.ust); v('stUstText',st.ustText); v('stKreis',st.kreis); v('stNext',st.next);
+  document.getElementById('stVorschau').textContent=rechNr();
+}
+function openFin(){
+  if(!fin.stamm.name&&typeof farm!=='undefined'&&farm){
+    if(farm.betreiber)fin.stamm.name=farm.betreiber;
+    if(farm.anschrift&&!fin.stamm.str)fin.stamm.str=farm.anschrift;
+  }
+  finPondList(); stammFill(); renderFinAll();
+  const d=document.getElementById('lfDatum'); if(!d.value)d.value=today();
+  const d2=document.getElementById('pvDatum'); if(!d2.value)d2.value=today();
+  const pp=document.getElementById('pvPreis');
+  if(!pp.value&&typeof calc!=='undefined'&&calc.speise)pp.value=calc.speise.regen.priv;
+  show('viewFinanz');
+}
+
+function initFin(){
+  finLoad();
+
+  document.getElementById('finBtn').addEventListener('click',openFin);
+  document.getElementById('finBackBtn').addEventListener('click',()=>show('viewList'));
+  document.getElementById('invBackBtn').addEventListener('click',()=>{renderFinAll();show('viewFinanz')});
+  document.getElementById('invPrint').addEventListener('click',()=>window.print());
+  document.getElementById('invPaid').addEventListener('click',()=>{
+    const r=fin.rech.find(x=>x.id===invShow); if(!r)return;
+    r.bezahlt=r.bezahlt?null:today();
+    finSave(); openInvoice(r.id);
+    toast(r.bezahlt?'Als bezahlt gebucht.':'Zahlung zurückgenommen.');
+  });
+
+  // Kunden
+  document.getElementById('kdSave').addEventListener('click',()=>{
+    const g=id=>document.getElementById(id).value.trim();
+    if(!g('kdName')){toast('Name eingeben.');return}
+    const data={name:g('kdName'),zusatz:g('kdZusatz'),str:g('kdStr'),plz:g('kdPlz'),
+      ort:g('kdOrt'),nr:g('kdNr'),preis:num(document.getElementById('kdPreis'),0),
+      art:document.getElementById('kdArt').value,takt:document.getElementById('kdTakt').value,
+      ziel:g('kdZiel')||'Fällig bei Erhalt'};
+    if(kdEdit){Object.assign(kundeById(kdEdit),data)}
+    else{fin.kunden.push(Object.assign({id:uid()},data))}
+    finSave(); kdFill(null); renderFinAll();
+    toast('Kunde gespeichert.');
+  });
+  document.getElementById('kdCancel').addEventListener('click',()=>kdFill(null));
+  document.getElementById('finKundenOut').addEventListener('click',e=>{
+    const ed=e.target.closest('[data-kdedit]'), re=e.target.closest('[data-kdrech]');
+    if(ed){kdFill(kundeById(ed.dataset.kdedit));document.getElementById('kdName').focus()}
+    if(re){makeRechnung(re.dataset.kdrech)}
+  });
+  document.getElementById('finOffenOut').addEventListener('click',e=>{
+    const re=e.target.closest('[data-kdrech]'), dl=e.target.closest('[data-lfdel]');
+    if(re){makeRechnung(re.dataset.kdrech)}
+    if(dl){e.preventDefault();
+      if(!confirm('Diese Lieferung löschen?'))return;
+      fin.lief=fin.lief.filter(l=>l.id!==dl.dataset.lfdel);
+      finSave(); renderFinAll();
+    }
+  });
+  document.getElementById('finRechOut').addEventListener('click',e=>{
+    const a=e.target.closest('[data-invopen]');
+    if(a){e.preventDefault();openInvoice(a.dataset.invopen)}
+  });
+
+  // Lieferung
+  document.getElementById('lfKunde').addEventListener('change',()=>{
+    document.getElementById('lfPreis').value='';
+    lfSync();
+  });
+  ['lfMenge','lfPreis'].forEach(id=>document.getElementById(id).addEventListener('input',lfPreview));
+  document.getElementById('lfAdd').addEventListener('click',()=>{
+    const k=kundeById(document.getElementById('lfKunde').value);
+    if(!k){toast('Erst einen Kunden anlegen.');return}
+    const menge=num(document.getElementById('lfMenge'),0);
+    const preis=num(document.getElementById('lfPreis'),k.preis);
+    const datum=document.getElementById('lfDatum').value||today();
+    if(!(menge>0)||!(preis>0)){toast('Menge und Preis eingeben.');return}
+    const besatz=k.art==='besatz';
+    const artK=document.getElementById('lfArt').value;
+    const artName=(ARTEN.find(a=>a[0]===artK)||['','Regenbogenforelle'])[1];
+    fin.lief.push({
+      id:uid(), kundeId:k.id, datum, besatz, menge, preis,
+      betrag:Math.round(menge*preis*100)/100,
+      groesse:besatz?document.getElementById('lfGroesse').value.trim():'',
+      text:besatz?artName+' (Besatz)':'Regenbogenforelle (Oncorhynchus mykiss)',
+      pondId:document.getElementById('lfPond').value,
+      note:document.getElementById('lfNote').value.trim(), rechId:null
+    });
+    finSave();
+    document.getElementById('lfMenge').value='';
+    document.getElementById('lfNote').value='';
+    document.getElementById('lfOut').innerHTML='';
+    renderFinAll();
+    toast('Lieferung eingetragen.');
+  });
+
+  // Privatverkauf
+  ['pvKg','pvPreis','pvBek'].forEach(id=>document.getElementById(id).addEventListener('input',pvPreview));
+  document.getElementById('pvAdd').addEventListener('click',()=>{
+    const kg=num(document.getElementById('pvKg'),0);
+    const preis=num(document.getElementById('pvPreis'),0);
+    if(!(kg>0)||!(preis>0)){toast('Gewicht und Preis eingeben.');return}
+    const exakt=kg*preis;
+    let bek=num(document.getElementById('pvBek'),0);
+    if(!(bek>0))bek=Math.round(exakt);
+    fin.priv.push({
+      id:uid(), datum:document.getElementById('pvDatum').value||today(),
+      pondId:document.getElementById('pvPond').value,
+      pcs:parseInt(document.getElementById('pvPcs').value)||0,
+      kg, preis, fisch:Math.round(exakt*100)/100,
+      bekommen:Math.round(bek*100)/100,
+      trink:Math.round((bek-exakt)*100)/100
+    });
+    finSave();
+    ['pvPcs','pvKg','pvBek'].forEach(id=>document.getElementById(id).value='');
+    document.getElementById('pvOut').innerHTML='';
+    renderFinAll();
+    toast('Verkauf eingetragen.');
+  });
+  document.getElementById('pvListe').addEventListener('click',e=>{
+    const d=e.target.closest('[data-pvdel]');
+    if(d){e.preventDefault();
+      if(!confirm('Diesen Verkauf löschen?'))return;
+      fin.priv=fin.priv.filter(x=>x.id!==d.dataset.pvdel);
+      finSave(); renderFinAll();
+    }
+  });
+
+  // Stammdaten
+  ['stKreis','stNext'].forEach(id=>document.getElementById(id).addEventListener('input',()=>{
+    document.getElementById('stVorschau').textContent=
+      String(document.getElementById('stKreis').value||'')
+      +String(Math.max(1,parseInt(document.getElementById('stNext').value,10)||1)).padStart(3,'0');
+  }));
+  document.getElementById('stSave').addEventListener('click',()=>{
+    const g=id=>document.getElementById(id).value.trim();
+    Object.assign(fin.stamm,{
+      banner:g('stBanner'),banner2:g('stBanner2'),name:g('stName'),str:g('stStr'),
+      plz:g('stPlz'),ort:g('stOrt'),steuer:g('stSteuer'),mobil:g('stMobil'),
+      tel:g('stTel'),mail:g('stMail'),bank:g('stBank'),iban:g('stIban'),bic:g('stBic'),
+      ust:num(document.getElementById('stUst'),fin.stamm.ust),
+      ustText:g('stUstText'),kreis:g('stKreis'),
+      next:Math.max(1,parseInt(document.getElementById('stNext').value,10)||1)
+    });
+    finSave(); renderFinAll(); stammFill();
+    toast('Rechnungsdaten gespeichert.');
+  });
+}
+
 initFolds();
 initWeather();
 initCalc();
+initFin();
 load();
 </script>
 </body>
