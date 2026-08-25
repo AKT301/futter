@@ -336,6 +336,7 @@ h1 .qmark{width:23px;height:23px;min-width:23px;font-size:14px;margin-left:9px}
   </header>
   <div class="wrap">
     <div id="storageBanner" class="banner"></div>
+    <button class="btn" id="feedAllBtn" style="margin-bottom:12px;display:none">✓ Alle gefüttert</button>
     <div id="pondList"></div>
     <button class="btn ghost" id="newPondBtn">+ Neuen Teich anlegen</button>
 
@@ -1179,6 +1180,10 @@ function activeRation(pond){
   }
   if(pond.rationMode==='daily') return d;
   if(!pond.ration) recalcRation(pond);
+  else{
+    const bio=pond.ration.bio||0;
+    if(bio>0&&pond.totalKg>0&&(pond.totalKg>bio*1.5||pond.totalKg<bio/1.5)) recalcRation(pond);
+  }
   return {kg:pond.ration.kg,per100:pond.ration.per100,
           cls:d.cls,product:d.product,fixed:true,since:pond.ration.since};
 }
@@ -1297,6 +1302,12 @@ function renderList(){
   const open=ponds.filter(p=>!fedToday(p)).length;
   sum.textContent=`${ponds.length} Teiche · ${fmt(totalBio,1)} kg Bestand · ${fmt(totalFeed,2)} kg Futter heute`
     + (open>0?` · ${open} noch offen`:' · alle gefüttert');
+  const fab=document.getElementById('feedAllBtn');
+  if(fab){
+    fab.style.display=open>0?'':'none';
+    const offenKg=ponds.filter(x=>!fedToday(x)).reduce((a,x)=>a+activeRation(x).kg,0);
+    fab.textContent=`✓ Alle ${open} füttern · ${fmt(offenKg,offenKg<10?3:2)} kg`;
+  }
 
   const card=p=>{
     const d=activeRation(p);
@@ -1843,7 +1854,8 @@ function calcOutflow(p,o){
   let restKg=Math.max(0,p.totalKg-removedKg);
   let restAvg=restCount>0?restKg*1000/restCount:p.avgG;
   let sampled=false;
-  if(o.useAsSample&&sampleAvg&&restCount>0){
+  const abwegig=!!(sampleAvg&&p.avgG>0&&(sampleAvg>p.avgG*3||sampleAvg<p.avgG/3));
+  if(o.useAsSample&&sampleAvg&&restCount>0&&!abwegig){
     restAvg=sampleAvg;
     restKg=restCount*sampleAvg/1000;
     sampled=true;
@@ -1851,7 +1863,7 @@ function calcOutflow(p,o){
   if(restCount===0){restKg=0;restAvg=p.avgG;sampled=false;}
   const probe={...p,totalKg:restKg,avgG:restAvg};
   const daily=restCount>0?dailyFor(probe):{kg:0,cls:{mm:'–'}};
-  return {before,pcs,kg,removedKg,sampleAvg,restCount,restKg,restAvg,sampled,daily};
+  return {before,pcs,kg,removedKg,sampleAvg,restCount,restKg,restAvg,sampled,daily,abwegig};
 }
 
 function calcInflow(target,removedKg,pcs){
@@ -1876,8 +1888,9 @@ function readOutForm(){
     trans:document.getElementById('outTrans').value.trim(),
     measure:document.getElementById('outMeasure').value.trim(),
     high:document.getElementById('outHigh').checked,
-    useAsSample:document.getElementById('outSampleChk')
-      ? document.getElementById('outSampleChk').checked : true
+    useAsSample:(outKind==='loss') ? false
+      : (document.getElementById('outSampleChk')
+        ? document.getElementById('outSampleChk').checked : true)
   };
 }
 
@@ -1950,7 +1963,14 @@ function renderOutForm(){
   }
   const r=calcOutflow(p,o);
   let html='';
-  if(o.kind!=='loss'&&r.sampleAvg){
+  if(r.abwegig&&r.sampleAvg){
+    html+=`<div class="sample" style="border-color:#c0392b;color:#7b241c">
+      <b>Das kann nicht stimmen.</b> ${fmt(o.kg,2)} kg auf ${fmt(o.pcs,0)} Stück wären
+      Ø ${fmt(r.sampleAvg,0)} g pro Fisch — im Teich stehen ${fmt(p.avgG,1)} g.
+      Wolltest du das Ø-Gewicht je Fisch eintragen? Das Feld erwartet das
+      <b>Gesamtgewicht in Kilo</b>. Der Ø des Restbestands bleibt unverändert.</div>`;
+  }
+  if(o.kind!=='loss'&&r.sampleAvg&&!r.abwegig){
     const diff=r.sampleAvg-p.avgG;
     const pct=p.avgG>0?diff/p.avgG*100:0;
     html+=`<div class="sample"><b>Probewiegung:</b> Ø ${fmt(r.sampleAvg,1)} g pro Fisch —
@@ -2412,14 +2432,32 @@ async function undoEntry(hid){
 }
 
 /* ---------- actions ---------- */
-document.getElementById('feedBtn').addEventListener('click',async()=>{
-  const p=ponds.find(x=>x.id===currentId);
+function bookFeed(p){
   const d=activeRation(p);
   const gain=d.kg/p.fcr;
   p.count=p.avgG>0?Math.round(p.totalKg*1000/p.avgG):0;
   p.totalKg=p.totalKg+gain;
   if(p.count>0) p.avgG=p.totalKg*1000/p.count;
-  p.history.push({id:Date.now().toString(36),date:today(),feed:d.kg,gain,after:p.totalKg});
+  p.history.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,5),
+    date:today(),feed:d.kg,gain,after:p.totalKg});
+  return {kg:d.kg,gain};
+}
+
+document.getElementById('feedAllBtn').addEventListener('click',async()=>{
+  const offen=ponds.filter(x=>!fedToday(x));
+  if(!offen.length){toast('Heute ist schon alles gefüttert.');return}
+  if(!confirm(`${offen.length} Teiche mit der empfohlenen Menge buchen?`))return;
+  let kg=0;
+  offen.forEach(x=>{kg+=bookFeed(x).kg});
+  renderList();
+  await save();
+  toast(`${offen.length} Teiche gebucht · ${fmt(kg,2)} kg Futter.`);
+});
+
+document.getElementById('feedBtn').addEventListener('click',async()=>{
+  const p=ponds.find(x=>x.id===currentId);
+  const d=bookFeed(p);
+  const gain=d.gain;
   document.getElementById('editTotal').value=Number(p.totalKg.toFixed(2));
   document.getElementById('editAvg').value=Number(p.avgG.toFixed(2));
   document.getElementById('editCount').value=stockCount(p);
@@ -2480,6 +2518,7 @@ document.getElementById('saveStockBtn').addEventListener('click',async()=>{
   if(v.avg<=0||v.count<=0||v.total<=0){toast('Bitte zwei der drei Werte eingeben.');return}
   p.totalKg=v.total; p.avgG=v.avg; p.count=v.count;
   p.fcr=(isNaN(f)||f<=0)?PRODUCTS[p.feed].defFcr:f;
+  if((p.rationMode||'weekly')!=='daily') recalcRation(p);
   p.site=document.getElementById('editSite').value.trim();
   p.species=document.getElementById('editSpecies').value;
   p.unit=document.getElementById('editUnit').value;
