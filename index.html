@@ -280,10 +280,13 @@ h1 .qmark{width:23px;height:23px;min-width:23px;font-size:14px;margin-left:9px}
 
 /* ---------- Rechnungsblatt ---------- */
 #invSheet{background:#fff;color:#111;padding:0 0 24px;font-family:Helvetica,Arial,sans-serif}
-.inv-banner{background:#12305c;color:#fff;text-align:center;padding:18px 10px 14px;border-radius:6px}
+.inv-banner{background:#12305c;color:#fff;text-align:center;padding:18px 10px 14px;border-radius:6px;display:flex;align-items:center;justify-content:center;gap:14px}
+.inv-banner img.logo{height:54px;width:auto;max-width:90px;object-fit:contain;flex:0 0 auto}
+.inv-banner .txt{text-align:center}
 .inv-banner .n1{font-size:27px;font-weight:800;letter-spacing:.3px;line-height:1.1}
 .inv-banner .n2{font-size:13px;font-weight:700;color:#a8c6e8;margin-top:4px}
-.inv-paper{border:1px solid #c9d2de;border-top:0;padding:16px 14px 20px}
+.inv-paper{border:1px solid #c9d2de;border-top:0;padding:16px 14px 20px;display:flex;flex-direction:column;min-height:190mm}
+.inv-footer{margin-top:auto;padding-top:18px}
 .inv-title{text-align:right;font-size:30px;font-weight:700;color:#12305c;letter-spacing:1px;margin:6px 0 18px}
 .inv-head{display:flex;gap:14px;flex-wrap:wrap}
 .inv-head>div{flex:1 1 46%;min-width:150px}
@@ -324,6 +327,7 @@ h1 .qmark{width:23px;height:23px;min-width:23px;font-size:14px;margin-left:9px}
   #viewInvoice .wrap{padding:0;max-width:none}
   #invSheet{padding:0}
   .inv-banner{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .inv-paper{min-height:238mm}
   .inv-lbl,.inv-tbl th,.inv-sums{-webkit-print-color-adjust:exact;print-color-adjust:exact}
 }
 </style>
@@ -1015,6 +1019,15 @@ h1 .qmark{width:23px;height:23px;min-width:23px;font-size:14px;margin-left:9px}
     <div class="card" data-fold="finStamm">
       <h2>Rechnungsdaten</h2>
       <div class="hint" style="margin-bottom:12px">Kopf und Fuß jeder Rechnung. Einmal ausfüllen, steht dann überall drin.</div>
+      <div class="field">
+        <label>Logo</label>
+        <div id="stLogoWrap" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <img id="stLogoImg" alt="" style="height:52px;width:auto;max-width:120px;object-fit:contain;background:#12305c;border-radius:6px;padding:4px;display:none">
+          <input type="file" id="stLogoFile" accept="image/*" style="flex:1 1 160px">
+          <button class="btn ghost" id="stLogoDel" style="flex:0 0 auto;padding:6px 12px;display:none">Entfernen</button>
+        </div>
+        <div class="hint">Erscheint links im Banner. Am besten ein Bild mit durchsichtigem Hintergrund.</div>
+      </div>
       <div class="field"><label>Betriebsname (Banner)</label><input type="text" id="stBanner" placeholder="Hölzler's Forellental"></div>
       <div class="field"><label>Zusatz im Banner</label><input type="text" id="stBanner2" placeholder="Direktvermarktung"></div>
       <div class="field"><label>Name</label><input type="text" id="stName" placeholder="Alexander Hölzler"></div>
@@ -2604,14 +2617,22 @@ document.getElementById('createPondBtn').addEventListener('click',async()=>{
 });
 
 /* ---------- backup ---------- */
+function backupData(){
+  const d={v:3,ponds,farm};
+  try{ if(typeof fin!=='undefined'&&fin) d.fin=fin; }catch(e){}
+  return d;
+}
 function refreshBackupBox(){
   const box=document.getElementById('backupBox');
-  if(box) box.value=JSON.stringify({v:2,ponds,farm});
-  setSum('sicherung',`${ponds.length} Teich${ponds.length===1?'':'e'} im Stand von heute`);
+  if(box) box.value=JSON.stringify(backupData());
+  let extra='';
+  try{ if(typeof fin!=='undefined'&&fin&&fin.kunden&&fin.kunden.length)
+        extra=`, ${fin.kunden.length} Kunde(n)`; }catch(e){}
+  setSum('sicherung',`${ponds.length} Teich${ponds.length===1?'':'e'}${extra} im Stand von heute`);
 }
 
 document.getElementById('downloadBtn').addEventListener('click',()=>{
-  const blob=new Blob([JSON.stringify(ponds,null,1)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify(backupData(),null,1)],{type:'application/json'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
   a.href=url;
@@ -2625,19 +2646,29 @@ async function restoreFrom(txt){
   let data;
   try{ data=JSON.parse(txt); }
   catch(e){ toast('Text nicht lesbar — bitte vollständig einfügen.'); return; }
-  let arr=null, fm=null;
+  let arr=null, fm=null, fi=null;
   if(Array.isArray(data)) arr=data;
-  else if(data&&Array.isArray(data.ponds)){arr=data.ponds; fm=data.farm;}
+  else if(data&&Array.isArray(data.ponds)){arr=data.ponds; fm=data.farm; fi=data.fin;}
   if(!arr){toast('Ungültige Sicherung.');return}
   if(ponds.length>0 && !confirm(`${ponds.length} vorhandene Teiche werden durch ${arr.length} aus der Sicherung ersetzt. Fortfahren?`))return;
   ponds=arr.map(p=>({history:[],fcr:0.9,...p}));
   if(fm) farm={betreiber:'',anschrift:'',sites:{},...fm};
   if(!farm.sites) farm.sites={};
+  let nK=0;
+  if(fi&&typeof fin!=='undefined'){
+    try{
+      fin=Object.assign(JSON.parse(JSON.stringify(FIN_DEF)),fi);
+      fin.stamm=Object.assign({},FIN_DEF.stamm,fi.stamm||{});
+      ['kunden','lief','priv','rech'].forEach(k=>{if(!Array.isArray(fin[k]))fin[k]=[]});
+      nK=fin.kunden.length;
+      finSave();
+    }catch(e){}
+  }
   renderFarm();
   await save();
   renderList();
   refreshBackupBox();
-  toast(`${ponds.length} Teich${ponds.length===1?'':'e'} wiederhergestellt.`);
+  toast(`${ponds.length} Teich${ponds.length===1?'':'e'}${nK?` und ${nK} Kunde(n)`:''} wiederhergestellt.`);
 }
 
 document.getElementById('importBtn').addEventListener('click',()=>{
@@ -3614,8 +3645,11 @@ function invoiceHTML(r){
   const filler='<tr class="blank"><td></td><td></td><td></td><td></td><td></td></tr>'.repeat(blanks);
   return `
   <div class="inv-banner">
-    <div class="n1">${esc(st.banner)}</div>
-    ${st.banner2?`<div class="n2">${esc(st.banner2)}</div>`:''}
+    ${st.logo?`<img class="logo" src="${st.logo}" alt="">`:''}
+    <div class="txt">
+      <div class="n1">${esc(st.banner)}</div>
+      ${st.banner2?`<div class="n2">${esc(st.banner2)}</div>`:''}
+    </div>
   </div>
   <div class="inv-paper">
     <div class="inv-title">RECHNUNG</div>
@@ -3650,14 +3684,16 @@ function invoiceHTML(r){
         <div class="tot"><span>Rechnungsbetrag</span><span>${eur2(r.brutto)}</span></div>
       </div>
     </div>
-    ${(()=>{const c=[];
-      if(st.mobil) c.push('Mobil '+esc(st.mobil));
-      if(st.tel) c.push('Telefon '+esc(st.tel));
-      if(st.mail) c.push(esc(st.mail));
-      return c.length
-        ? `<div class="inv-note">Bitte wenden Sie sich mit Fragen zu dieser Rechnung an:<br>${c.join(' · ')}</div>`
-        : '';})()}
-    ${(st.bank||st.iban||st.bic)?`<div class="inv-bank">${esc(st.bank||'')}${st.iban?(st.bank?', ':'')+'IBAN '+esc(st.iban):''}${st.bic?', BIC '+esc(st.bic):''}</div>`:''}
+    <div class="inv-footer">
+      ${(()=>{const c=[];
+        if(st.mobil) c.push('Mobil '+esc(st.mobil));
+        if(st.tel) c.push('Telefon '+esc(st.tel));
+        if(st.mail) c.push(esc(st.mail));
+        return c.length
+          ? `<div class="inv-note">Bitte wenden Sie sich mit Fragen zu dieser Rechnung an:<br>${c.join(' · ')}</div>`
+          : '';})()}
+      ${(st.bank||st.iban||st.bic)?`<div class="inv-bank">${esc(st.bank||'')}${st.iban?(st.bank?' · ':'')+'IBAN '+esc(st.iban):''}${st.bic?' · BIC '+esc(st.bic):''}</div>`:''}
+    </div>
   </div>`;
 }
 function openInvoice(id){
@@ -3706,6 +3742,13 @@ function stammFill(){
   v('stBank',st.bank); v('stIban',st.iban); v('stBic',st.bic);
   v('stUst',st.ust); v('stUstText',st.ustText); v('stKreis',st.kreis); v('stNext',st.next);
   document.getElementById('stVorschau').textContent=rechNr();
+  stLogoShow();
+}
+function stLogoShow(){
+  const img=document.getElementById('stLogoImg'), del=document.getElementById('stLogoDel');
+  if(!img)return;
+  if(fin.stamm.logo){img.src=fin.stamm.logo;img.style.display='';del.style.display='';}
+  else {img.removeAttribute('src');img.style.display='none';del.style.display='none';}
 }
 function openFin(){
   if(!fin.stamm.name&&typeof farm!=='undefined'&&farm){
@@ -3837,6 +3880,26 @@ function initFin(){
       String(document.getElementById('stKreis').value||'')
       +String(Math.max(1,parseInt(document.getElementById('stNext').value,10)||1)).padStart(3,'0');
   }));
+  document.getElementById('stLogoFile').addEventListener('change',async e=>{
+    const f=e.target.files&&e.target.files[0]; if(!f)return;
+    if(f.size>1500000){toast('Bild ist zu groß — bitte unter 1,5 MB.');e.target.value='';return}
+    const rd=new FileReader();
+    rd.onload=async()=>{
+      fin.stamm.logo=rd.result;
+      stLogoShow();
+      await finSave();
+      toast('Logo gespeichert.');
+    };
+    rd.readAsDataURL(f);
+    e.target.value='';
+  });
+  document.getElementById('stLogoDel').addEventListener('click',async()=>{
+    delete fin.stamm.logo;
+    stLogoShow();
+    await finSave();
+    toast('Logo entfernt.');
+  });
+
   document.getElementById('stSave').addEventListener('click',()=>{
     const g=id=>document.getElementById(id).value.trim();
     Object.assign(fin.stamm,{
