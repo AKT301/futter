@@ -882,8 +882,11 @@ h1 .qmark{width:23px;height:23px;min-width:23px;font-size:14px;margin-left:9px}
           <div class="field"><label>Futterquotient</label><input type="number" id="cpFcr" step="0.05" min="0.1" inputmode="decimal"></div>
         </div>
         <div class="row2">
-          <div class="field"><label>Sonstiges je Fisch (€)</label><input type="number" id="cpSonst" step="0.05" min="0" inputmode="decimal"></div>
+          <div class="field"><label>Sonstiges (% der Futterkosten)</label><input type="number" id="cpSonstP" step="5" min="0" max="300" inputmode="decimal"></div>
           <div class="field"><label>Verluste (%)</label><input type="number" id="cpVerlust" step="0.5" min="0" max="50" inputmode="decimal"></div>
+        </div>
+        <div class="field"><label>Schlachtgewicht ab (g)</label><input type="number" id="cpSchlachtG" step="10" min="50" inputmode="decimal">
+          <div class="hint">Darunter rechnet die App nur Besatz (cm × Cent), darüber kommen die Speisefischpreise dazu.</div>
         </div>
         <div class="field" style="margin-bottom:0"><label>Ausbeute küchenfertig (%)</label>
           <input type="number" id="cpAusbeute" step="1" min="40" max="100" inputmode="decimal">
@@ -1549,30 +1552,51 @@ function renderGrainPlan(pond,targetG){
   const stkJetzt=stockCount(pond);
   const verl=Math.max(0,Math.min(50,calc.verlust||0));
   const stkEnde=Math.max(0,Math.round(stkJetzt*(1-verl/100)));
-  const sonstK=(calc.sonst||0)*stkEnde;
+  const sonstP=(calc.sonstP==null?45:calc.sonstP);
+  const sonstK=futterKost*sonstP/100;
   const kostGes=futterKost+sonstK;
 
   const aKey=(typeof artKey==='function')?artKey(speciesOf(pond)):'regen';
-  const kanal=(calc.mastKanal==='gastro')?'gastro':'priv';
-  const pKg=((calc.speise[aKey]||calc.speise.regen)[kanal])||0;
+  const schlachtG=calc.schlachtG||300;
+  const zuKlein=targetG<schlachtG;
+  let kanal=(calc.mastKanal==='gastro')?'gastro':((calc.mastKanal==='besatz')?'besatz':'priv');
+  if(zuKlein) kanal='besatz';
   const lebendKg=stkEnde*targetG/1000;
-  const kfKg=lebendKg*((calc.ausbeute||86)/100);
-  const erloes=kfKg*pKg;
+
+  let erloes=0, erlZeile='';
+  if(kanal==='besatz'){
+    const Lz=lgLength(targetG);
+    const ctcm=(calc.besatz&&calc.besatz[aKey])||6;
+    erloes=stkEnde*Lz*ctcm/100;
+    erlZeile=`<div class="calcrow"><span>${stkEnde.toLocaleString('de-DE')} Stück × ${fmt(targetG,targetG<10?1:0)} g<br>
+      <span style="color:var(--ink-soft);font-size:11.5px">nach ${fmt(verl,0)} % Verlust · ${fmt(Lz,1)} cm × ${fmt(ctcm,0)} ct/cm</span></span>
+      <span>${eur(erloes)}</span></div>`;
+  }else{
+    const pKg=((calc.speise[aKey]||calc.speise.regen)[kanal])||0;
+    const kfKg=lebendKg*((calc.ausbeute||86)/100);
+    erloes=kfKg*pKg;
+    erlZeile=`<div class="calcrow"><span>${stkEnde.toLocaleString('de-DE')} Stück × ${fmt(targetG,0)} g<br>
+      <span style="color:var(--ink-soft);font-size:11.5px">nach ${fmt(verl,0)} % Verlust · ${fmt(kfKg,1)} kg küchenfertig bei ${fmt(calc.ausbeute||86,0)} %</span></span>
+      <span>${eur(erloes)}</span></div>`;
+  }
+  const kanalZeile = zuKlein
+    ? `<div class="calcrow" style="margin-top:8px"><span>Verkauf als</span><span><b>Verein / Besatz</b></span></div>
+       <div class="hint" style="margin:2px 0 6px">Unter ${fmt(schlachtG,0)} g rechnet die App als Besatzfisch — nach cm und Cent. Küchenfertig gibt es erst ab Schlachtgewicht.</div>`
+    : `<div class="calcrow" style="margin-top:8px"><span>Verkauf an</span>
+      <span><select id="mastKanal" style="font-size:12.5px;padding:3px 6px">
+        <option value="priv"${kanal==='priv'?' selected':''}>Privat / ab Teich</option>
+        <option value="gastro"${kanal==='gastro'?' selected':''}>Edeka / Gastro</option>
+        <option value="besatz"${kanal==='besatz'?' selected':''}>Verein / Besatz</option>
+      </select></span></div>`;
   const rest=erloes-kostGes;
 
   const money=`<div class="moneybox">
     <h4>Was es kostet und was es bringt</h4>
     <div class="calcrow"><span>Futter gesamt · ${fmt(totalKg,1)} kg</span><span>${eur(futterKost)}</span></div>
-    <div class="calcrow"><span>Sonstiges · ${fmt(calc.sonst||0,2)} € je Fisch</span><span>${eur(sonstK)}</span></div>
+    <div class="calcrow"><span>Sonstiges · ${fmt(sonstP,0)} % der Futterkosten</span><span>${eur(sonstK)}</span></div>
     <div class="calcrow sum"><span>Kosten bis zum Ziel</span><span>${eur(kostGes)}</span></div>
-    <div class="calcrow" style="margin-top:8px"><span>Verkauf an</span>
-      <span><select id="mastKanal" style="font-size:12.5px;padding:3px 6px">
-        <option value="priv"${kanal==='priv'?' selected':''}>Privat / ab Teich</option>
-        <option value="gastro"${kanal==='gastro'?' selected':''}>Edeka / Gastro</option>
-      </select></span></div>
-    <div class="calcrow"><span>${stkEnde.toLocaleString('de-DE')} Stück × ${fmt(targetG,0)} g<br>
-      <span style="color:var(--ink-soft);font-size:11.5px">nach ${fmt(verl,0)} % Verlust · ${fmt(kfKg,1)} kg küchenfertig bei ${fmt(calc.ausbeute||86,0)} %</span></span>
-      <span>${eur(erloes)}</span></div>
+    ${kanalZeile}
+    ${erlZeile}
     <div class="calcrow sum"><span>${rest>=0?'Bleibt übrig':'Fehlbetrag'}</span><span>${rest>=0?'':'−'}${eur(Math.abs(rest))}</span></div>
     <div class="mfoot">
       Je Fisch: <b>${eur(kostGes/Math.max(1,stkEnde))}</b> Kosten,
@@ -2887,7 +2911,7 @@ const CALC_DEF={
   mess:[],
   besatz:{regen:6,bach:7,saib:8},
   speise:{regen:{priv:15,gastro:10},bach:{priv:19,gastro:13},saib:{priv:18,gastro:12.5}},
-  futter:2.70, fcr:0.9, sonst:0.30, verlust:3, ausbeute:86,
+  futter:2.70, fcr:0.9, sonst:0.30, sonstP:45, schlachtG:300, verlust:3, ausbeute:86,
   gpreis:{}, mastKanal:'priv',
   aufschlag:0.20, mwstAuf:true, goldSupport:true,
   aufschlagP:{brut:1.06, futura2:0.20, gold:0.20, silver:0.20}, gquelle:{}, eink:[]
@@ -3001,8 +3025,9 @@ function renderCalcWeg(){
     const erloes=kf*preis;
     const zuwachs=(ziel-g0)/1000;
     const futter=zuwachs*calc.fcr*calc.futter;
+    const sonstB=futter*((calc.sonstP==null?45:calc.sonstP)/100);
     const verlust=erloes*calc.verlust/100;
-    const netto=erloes-futter-calc.sonst-verlust;
+    const netto=erloes-futter-sonstB-verlust;
     const mehr=netto-besatzWert;
     aWin=mehr<0;
     bBox=`<div class="wbox${mehr>0?' win':''}"><div class="wt">Weg B — Speisefisch</div><div class="wv">${fmt(netto,2)}<span style="font-size:16px"> €</span></div><div class="wu">${fmt(netto/kf,2)} €/kg küchenfertig</div></div>`;
@@ -3019,7 +3044,7 @@ function renderCalcWeg(){
     detail=`<div style="margin-top:14px">
       <div class="calcrow"><span>Erlös ${fmt(kf*1000,0)} g küchenfertig × ${fmt(preis,2)} €</span><span>${eur(erloes)}</span></div>
       <div class="calcrow neg"><span>Futter ${fmt(zuwachs*calc.fcr*1000,0)} g (FQ ${fmt(calc.fcr,2)})</span><span>−${eur(futter)}</span></div>
-      <div class="calcrow neg"><span>Sonstiges</span><span>−${eur(calc.sonst)}</span></div>
+      <div class="calcrow neg"><span>Sonstiges ${fmt(calc.sonstP==null?45:calc.sonstP,0)} % vom Futter</span><span>−${eur(sonstB)}</span></div>
       <div class="calcrow neg"><span>Verluste ${fmt(calc.verlust,1)} %</span><span>−${eur(verlust)}</span></div>
       <div class="calcrow sum"><span>Weg B netto je Fisch</span><span>${eur(netto)}</span></div>
       <div class="calcrow sum"><span>${mehr>=0?'Mehrertrag gegenüber Besatz':'Weniger als Besatzverkauf'}</span><span>${mehr>=0?'+':''}${eur(mehr)}</span></div>
@@ -3209,7 +3234,8 @@ function renderCalcPrices(){
   renderWerkTab();
   document.getElementById('cpFutter').value=calc.futter;
   document.getElementById('cpFcr').value=calc.fcr;
-  document.getElementById('cpSonst').value=calc.sonst;
+  document.getElementById('cpSonstP').value=(calc.sonstP==null?45:calc.sonstP);
+  document.getElementById('cpSchlachtG').value=calc.schlachtG||300;
   document.getElementById('cpVerlust').value=calc.verlust;
   document.getElementById('cpAusbeute').value=calc.ausbeute;
 }
@@ -3292,7 +3318,8 @@ function initCalc(){
     calc.goldSupport=document.getElementById('cpGoldSup').checked;
     calc.futter=num(document.getElementById('cpFutter'),calc.futter);
     calc.fcr=num(document.getElementById('cpFcr'),calc.fcr);
-    calc.sonst=num(document.getElementById('cpSonst'),calc.sonst);
+    calc.sonstP=num(document.getElementById('cpSonstP'),calc.sonstP==null?45:calc.sonstP);
+    calc.schlachtG=num(document.getElementById('cpSchlachtG'),calc.schlachtG||300);
     calc.verlust=num(document.getElementById('cpVerlust'),calc.verlust);
     calc.ausbeute=num(document.getElementById('cpAusbeute'),calc.ausbeute);
     calcSave();
