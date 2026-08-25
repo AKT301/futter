@@ -327,9 +327,9 @@ h1 .qmark{width:23px;height:23px;min-width:23px;font-size:14px;margin-left:9px}
   #viewInvoice .wrap{padding:0;max-width:none}
   #invSheet{padding:0}
   .inv-banner{-webkit-print-color-adjust:exact;print-color-adjust:exact}
-  @page{margin:10mm}
-  #invSheet{page-break-inside:avoid;break-inside:avoid}
-  .inv-paper{min-height:196mm}
+  @page{margin:8mm}
+  .inv-paper{display:block;min-height:0;border:0;padding:10px 14px 0}
+  .inv-footer{margin-top:5mm;padding-top:0;page-break-inside:avoid;break-inside:avoid}
   .inv-lbl,.inv-tbl th,.inv-sums{-webkit-print-color-adjust:exact;print-color-adjust:exact}
 }
 </style>
