@@ -209,6 +209,15 @@ header.top .hrow{display:flex;align-items:flex-start;justify-content:space-betwe
 .wx-day .dn{flex:1;font-weight:600}
 .wx-day .mm{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--teal-deep);min-width:64px;text-align:right}
 .wx-day .tt{font-family:'JetBrains Mono',monospace;color:var(--ink-soft);min-width:76px;text-align:right}
+.gp-in{width:62px;padding:4px 6px;font-size:12px;text-align:right;
+  border:1px solid var(--line);border-radius:7px;background:#fff;
+  font-family:'JetBrains Mono',monospace}
+.moneybox{background:#F1F6F5;border:1px solid #CFE0DC;border-radius:12px;
+  padding:13px 14px;margin-top:12px}
+.moneybox h4{margin:0 0 9px;font-size:14px;color:var(--teal-deep)}
+.moneybox .calcrow{padding:6px 0}
+.mfoot{font-size:12.5px;color:var(--ink-soft);margin-top:9px;line-height:1.5}
+
 /* ---------- Erklärungen ---------- */
 .qmark{display:inline-flex;align-items:center;justify-content:center;
   width:19px;height:19px;min-width:19px;border-radius:50%;
@@ -1366,6 +1375,11 @@ function sackSize(){
   const v=parseFloat(String((document.getElementById('sackKg')||{}).value||'').replace(',','.'));
   return v>0?v:25;
 }
+function gPreis(key){
+  const v=calc.gpreis&&calc.gpreis[key];
+  return (v>0)?v:(calc.futter||2.70);
+}
+
 function renderGrainPlan(pond,targetG){
   const box=document.getElementById('grainPlan');
   if(!box)return;
@@ -1374,23 +1388,86 @@ function renderGrainPlan(pond,targetG){
   try{s=simulate(pond,targetG,{chain:true,maxDays:1600})}catch(e){}
   if(!s||!s.reached||!s.grains.length){box.innerHTML='';return}
   const sack=sackSize();
+
   const rows=s.grains.map(g=>{
     const saecke=g.kg/sack;
     const kauf=Math.max(1,Math.round(saecke*2)/2);
+    const pr=gPreis(g.key);
     return `<div class="calcrow">
       <span><b style="font-family:'JetBrains Mono',monospace">${g.mm}</b> · ${g.name}<br>
-        <span style="color:var(--ink-soft);font-size:11.5px">${fmt(g.fromG,g.fromG<10?1:0)}–${fmt(g.toG,0)} g · ${g.days} Tage</span></span>
-      <span>${fmt(g.kg,g.kg<10?2:1)} kg<br><span style="font-size:11.5px;color:var(--ink-soft)">${fmt(kauf,kauf%1?1:0)} Sack</span></span>
+        <span style="color:var(--ink-soft);font-size:11.5px">${fmt(g.fromG,g.fromG<10?1:0)}–${fmt(g.toG,0)} g · ${g.days} Tage · ${fmt(kauf,kauf%1?1:0)} Sack</span></span>
+      <span style="text-align:right">${fmt(g.kg,g.kg<10?2:1)} kg<br>
+        <span style="font-size:11.5px;color:var(--ink-soft)">
+          <input type="number" class="gp-in" data-gp="${g.key}" step="0.05" min="0"
+                 inputmode="decimal" value="${Math.round(gPreis(g.key)*100)/100}"> €/kg
+          → <b>${eur(g.kg*pr)}</b></span></span>
     </div>`;
   }).join('');
-  const total=s.grains.reduce((a,g)=>a+g.kg,0);
+
+  const totalKg=s.grains.reduce((a,g)=>a+g.kg,0);
+  const futterKost=s.grains.reduce((a,g)=>a+g.kg*gPreis(g.key),0);
+
+  // ---- Geld
+  const stkJetzt=stockCount(pond);
+  const verl=Math.max(0,Math.min(50,calc.verlust||0));
+  const stkEnde=Math.max(0,Math.round(stkJetzt*(1-verl/100)));
+  const sonstK=(calc.sonst||0)*stkEnde;
+  const kostGes=futterKost+sonstK;
+
+  const aKey=(typeof artKey==='function')?artKey(speciesOf(pond)):'regen';
+  const kanal=(calc.mastKanal==='gastro')?'gastro':'priv';
+  const pKg=((calc.speise[aKey]||calc.speise.regen)[kanal])||0;
+  const lebendKg=stkEnde*targetG/1000;
+  const kfKg=lebendKg*((calc.ausbeute||86)/100);
+  const erloes=kfKg*pKg;
+  const rest=erloes-kostGes;
+
+  const money=`<div class="moneybox">
+    <h4>Was es kostet und was es bringt</h4>
+    <div class="calcrow"><span>Futter gesamt · ${fmt(totalKg,1)} kg</span><span>${eur(futterKost)}</span></div>
+    <div class="calcrow"><span>Sonstiges · ${fmt(calc.sonst||0,2)} € je Fisch</span><span>${eur(sonstK)}</span></div>
+    <div class="calcrow sum"><span>Kosten bis zum Ziel</span><span>${eur(kostGes)}</span></div>
+    <div class="calcrow" style="margin-top:8px"><span>Verkauf an</span>
+      <span><select id="mastKanal" style="font-size:12.5px;padding:3px 6px">
+        <option value="priv"${kanal==='priv'?' selected':''}>Privat / ab Teich</option>
+        <option value="gastro"${kanal==='gastro'?' selected':''}>Edeka / Gastro</option>
+      </select></span></div>
+    <div class="calcrow"><span>${stkEnde.toLocaleString('de-DE')} Stück × ${fmt(targetG,0)} g<br>
+      <span style="color:var(--ink-soft);font-size:11.5px">nach ${fmt(verl,0)} % Verlust · ${fmt(kfKg,1)} kg küchenfertig bei ${fmt(calc.ausbeute||86,0)} %</span></span>
+      <span>${eur(erloes)}</span></div>
+    <div class="calcrow sum"><span>${rest>=0?'Bleibt übrig':'Fehlbetrag'}</span><span>${rest>=0?'':'−'}${eur(Math.abs(rest))}</span></div>
+    <div class="mfoot">
+      Je Fisch: <b>${eur(kostGes/Math.max(1,stkEnde))}</b> Kosten,
+      <b>${eur(erloes/Math.max(1,stkEnde))}</b> Erlös,
+      <b>${eur(rest/Math.max(1,stkEnde))}</b> übrig.<br>
+      Futter je kg Zuwachs: <b>${eur(futterKost/Math.max(0.001,lebendKg-stkJetzt*pond.avgG/1000))}</b>.
+      Der Einsatz, den die Fische heute schon wert sind, ist hier noch nicht abgezogen —
+      den Vergleich rechnet der Abschnitt „Besatz oder Speisefisch“ in der Kalkulation.
+    </div>
+  </div>`;
+
   box.innerHTML=`<div class="arrowbox" style="margin-top:14px">
     <h3>Was du einkaufen musst</h3>
-    <div class="hint" style="margin-bottom:10px">Von ${fmt(pond.avgG,pond.avgG<10?1:0)} g bis ${fmt(targetG,0)} g, mit Futterwechsel wie in der Praxis: Brutfutter bis 15 g, Futura 2 mm bis 40 g, danach Mastfutter.</div>
+    <div class="hint" style="margin-bottom:10px">Von ${fmt(pond.avgG,pond.avgG<10?1:0)} g bis ${fmt(targetG,0)} g, mit Futterwechsel wie in der Praxis: Brutfutter bis 15 g, Futura 2 mm bis 40 g, danach Mastfutter. Sackgröße und Preise kannst du ändern.</div>
     ${rows}
-    <div class="calcrow sum"><span>Gesamt · ${s.days} Tage</span><span>${fmt(total,1)} kg</span></div>
+    <div class="calcrow sum"><span>Gesamt · ${s.days} Tage</span><span>${fmt(totalKg,1)} kg · ${eur(futterKost)}</span></div>
+    ${money}
     <div class="hint" style="margin-top:10px">Nach Tabelle gerechnet. In der Praxis brauchst du von den kleinen Korngrößen meist weniger, weil die Fische schneller durchwachsen — die großen Größen fütterst du dafür länger.</div>
   </div>`;
+
+  box.querySelectorAll('[data-gp]').forEach(el=>{
+    el.addEventListener('change',()=>{
+      const v=parseFloat(String(el.value).replace(',','.'));
+      calc.gpreis=calc.gpreis||{};
+      if(v>0)calc.gpreis[el.dataset.gp]=v; else delete calc.gpreis[el.dataset.gp];
+      calcSave();
+      renderGrainPlan(pond,targetG);
+    });
+  });
+  const mk=box.querySelector('#mastKanal');
+  if(mk)mk.addEventListener('change',()=>{
+    calc.mastKanal=mk.value; calcSave(); renderGrainPlan(pond,targetG);
+  });
 }
 function simulate(pond,targetG,opts){
   opts=opts||{};
@@ -2671,7 +2748,8 @@ const CALC_DEF={
   mess:[],
   besatz:{regen:6,bach:7,saib:8},
   speise:{regen:{priv:15,gastro:10},bach:{priv:19,gastro:13},saib:{priv:18,gastro:12.5}},
-  futter:2.70, fcr:0.9, sonst:0.30, verlust:3, ausbeute:86
+  futter:2.70, fcr:0.9, sonst:0.30, verlust:3, ausbeute:86,
+  gpreis:{}, mastKanal:'priv'
 };
 let calc=JSON.parse(JSON.stringify(CALC_DEF));
 
@@ -2684,6 +2762,7 @@ function calcLoad(){
       calc.besatz=Object.assign({},CALC_DEF.besatz,j.besatz||{});
       calc.speise=Object.assign({},JSON.parse(JSON.stringify(CALC_DEF.speise)),j.speise||{});
       if(!Array.isArray(calc.mess))calc.mess=[];
+      if(!calc.gpreis||typeof calc.gpreis!=='object')calc.gpreis={};
     }
   }catch(e){}
 }
@@ -3424,9 +3503,11 @@ abgang:`<p><b>Vier Arten von Buchungen:</b></p>
 </ul>
 <p><b>Tipp:</b> Wenn du das Gesamtgewicht wiegst, wird daraus gleich ein neues Durchschnittsgewicht für den Restbestand.</p>`,
 
-mast:`<p><b>Wofür:</b> Du gibst ein Zielgewicht ein — die App sagt dir, wie lange es dauert und wie viel Futter du dafür brauchst.</p>
+mast:`<p><b>Wofür:</b> Du gibst ein Zielgewicht ein — die App sagt dir, wie lange es dauert, wie viel Futter du brauchst und was am Ende übrig bleibt.</p>
 <p>Gerechnet wird mit der aktuellen Wassertemperatur. Wird es kälter, dauert es länger.</p>
-<p>Darunter steht, welche Korngrößen du in welcher Menge einkaufen musst.</p>`,
+<p><b>Was du einkaufen musst:</b> Welche Korngröße wann dran ist, wie viele Sack das sind und was jede kostet. Die Preise kannst du je Korngröße überschreiben — Brutfutter ist teurer als Mastfutter.</p>
+<p><b>Was es kostet und was es bringt:</b> Futter plus sonstige Kosten gegen den Erlös am Ende. Unten steht es je Fisch — was er dich kostet und was er bringt.</p>
+<p>Der heutige Wert der Fische ist dabei nicht abgezogen. Ob sich Weiterfüttern gegenüber sofortigem Besatzverkauf lohnt, rechnet die Kalkulation aus.</p>`,
 
 vergleich:`<p><b>Wofür:</b> Was kostet dich ein Kilo Zuwachs mit Sorte A gegenüber Sorte B.</p>
 <p>Teureres Futter mit besserem Futterquotienten kann unterm Strich günstiger sein — genau das rechnet dieser Abschnitt aus.</p>
