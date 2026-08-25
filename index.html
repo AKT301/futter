@@ -209,6 +209,17 @@ header.top .hrow{display:flex;align-items:flex-start;justify-content:space-betwe
 .wx-day .dn{flex:1;font-weight:600}
 .wx-day .mm{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--teal-deep);min-width:64px;text-align:right}
 .wx-day .tt{font-family:'JetBrains Mono',monospace;color:var(--ink-soft);min-width:76px;text-align:right}
+.gprow{padding:8px 0;border-bottom:1px solid var(--line);font-size:13px}
+.gprow:last-child{border-bottom:none}
+.gp-top{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.gp-top .nm{min-width:0}
+.gp-top .kg{font-family:'JetBrains Mono',monospace;font-weight:700;white-space:nowrap;
+  color:var(--teal-deep)}
+.gp-sub{font-size:11.5px;color:var(--ink-soft);margin-top:1px}
+.gp-bot{display:flex;align-items:center;gap:5px;margin-top:6px}
+.gp-bot .un{font-size:11px;color:var(--ink-soft)}
+.gp-bot .eur{margin-left:auto;font-family:'JetBrains Mono',monospace;
+  font-weight:700;white-space:nowrap}
 .gp-in{width:62px;padding:4px 6px;font-size:12px;text-align:right;
   border:1px solid var(--line);border-radius:7px;background:#fff;
   font-family:'JetBrains Mono',monospace}
@@ -1073,6 +1084,17 @@ const PRODUCTS={
     {min:7.0,max:15.0,mm:"1.3–2.0 mm",vals:[0.70,0.94,1.17,1.41,1.76,2.11,2.25,2.34,2.20]}]}
 };
 
+/* Belegte Preise aus echten Rechnungen und Shop-Staenden, brutto frei Haus (EUR/kg).
+   Gelten dauerhaft als Grundlage. Ein eigener Einkauf oder ein von Hand
+   eingetragener Preis geht immer vor. */
+const RECH={
+  'Aller Gold|4.5 mm':       [2.20, 'Sauer 20.05.26'],
+  'Aller Futura 2mm|2 mm':   [2.61, 'Sauer 20.05.26'],
+  'Futura EX GR|0.5\u20131.0 mm': [5.05, 'Erzgebirge Shop 25.08.26'],
+  'Futura EX GR|0.9\u20131.6 mm': [5.05, 'Erzgebirge Shop 25.08.26'],
+  'Futura EX GR|1.3\u20132.0 mm': [5.05, 'Erzgebirge Shop 25.08.26']
+};
+
 /* Werkspreise Emsland-Aller Aqua, Liste ab 01.07.2026, netto ab Werk (€/kg).
    Schlüssel = Futtername|Korngröße, genau wie simulate() sie bildet. */
 const WERK={
@@ -1464,7 +1486,16 @@ function sackSize(){
 }
 function gPreisEcht(key){
   const v=calc.gpreis&&calc.gpreis[key];
-  return (v>0)?v:0;
+  if(v>0)return v;
+  const r=RECH[key];
+  return r?r[0]:0;
+}
+/* Woher der echte Preis stammt */
+function gQuelle(key){
+  const v=calc.gpreis&&calc.gpreis[key];
+  if(v>0)return (calc.gquelle&&calc.gquelle[key])||'von Hand';
+  const r=RECH[key];
+  return r?r[1]:'';
 }
 function aufschlagFor(key){
   const p=calc.aufschlagP&&calc.aufschlagP[prodOf(key)];
@@ -1492,16 +1523,21 @@ function renderGrainPlan(pond,targetG){
     const saecke=g.kg/sack;
     const kauf=Math.max(1,Math.round(saecke*2)/2);
     const pr=gPreis(g.key);
-    return `<div class="calcrow">
-      <span><b style="font-family:'JetBrains Mono',monospace">${g.mm}</b> · ${g.name}<br>
-        <span style="color:var(--ink-soft);font-size:11.5px">${fmt(g.fromG,g.fromG<10?1:0)}–${fmt(g.toG,0)} g · ${g.days} Tage · ${fmt(kauf,kauf%1?1:0)} Sack</span></span>
-      <span style="text-align:right">${fmt(g.kg,g.kg<10?2:1)} kg<br>
-        <span style="font-size:11.5px;color:var(--ink-soft)">
-          <input type="number" class="gp-in" data-gp="${g.key}" step="0.05" min="0"
-                 inputmode="decimal" placeholder="${Math.round(gPreisSchaetz(g.key)*100)/100}"
-                 value="${gPreisEcht(g.key)?Math.round(gPreisEcht(g.key)*100)/100:''}"> €/kg
-          <span class="ptag ${gPreisEcht(g.key)?'echt':''}">${gPreisEcht(g.key)?'echt':'geschätzt'}</span>
-          → <b>${eur(g.kg*pr)}</b></span></span>
+    const ist=gPreisEcht(g.key);
+    return `<div class="gprow">
+      <div class="gp-top">
+        <span class="nm"><b style="font-family:'JetBrains Mono',monospace">${g.mm}</b> · ${g.name}</span>
+        <span class="kg">${fmt(g.kg,g.kg<10?2:1)} kg</span>
+      </div>
+      <div class="gp-sub">${fmt(g.fromG,g.fromG<10?1:0)}–${fmt(g.toG,0)} g · ${g.days} Tage · ${fmt(kauf,kauf%1?1:0)} Sack</div>
+      <div class="gp-bot">
+        <input type="number" class="gp-in" data-gp="${g.key}" step="0.05" min="0"
+               inputmode="decimal" placeholder="${Math.round(gPreisSchaetz(g.key)*100)/100}"
+               value="${ist?Math.round(ist*100)/100:''}">
+        <span class="un">€/kg</span>
+        <span class="ptag ${ist?'echt':''}">${ist?'echt':'geschätzt'}</span>
+        <span class="eur">${eur(g.kg*pr)}</span>
+      </div>
     </div>`;
   }).join('');
 
@@ -2882,23 +2918,6 @@ function calcLoad(){
     if(!calc.gpreis||typeof calc.gpreis!=='object')calc.gpreis={};
     if(!calc.gquelle||typeof calc.gquelle!=='object')calc.gquelle={};
     if(!Array.isArray(calc.eink))calc.eink=[];
-      /* Einmalig: echte Preise aus den Rechnungen, brutto frei Haus */
-      if(calc.seedRech!==3){
-        const alt=calc.seedRech;
-        calc.seedRech=3;
-        const seed=[
-          ['Aller Gold|4.5 mm',      2.20, 'Sauer 20.05.26'],
-          ['Aller Futura 2mm|2 mm',  2.61, 'Sauer 20.05.26'],
-          ['Futura EX GR|0.5–1.0 mm',5.09, 'Erzgebirge Shop 25.08.26'],
-          ['Futura EX GR|0.9–1.6 mm',5.09, 'Erzgebirge Shop 25.08.26'],
-          ['Futura EX GR|1.3–2.0 mm',5.09, 'Erzgebirge Shop 25.08.26']
-        ];
-        seed.forEach(([k,v,q])=>{
-          /* alten Startwert vom Juli überschreiben, eigene Eintragungen nie */
-          const istAlt = (alt===2 && k==='Futura EX GR|1.3–2.0 mm' && calc.gpreis[k]===4.59);
-          if(!(calc.gpreis[k]>0) || istAlt){calc.gpreis[k]=v; calc.gquelle[k]=q;}
-        });
-      }
     if(calc.eink.length)preiseAusEink();
   }catch(e){}
 }
@@ -3054,7 +3073,7 @@ function renderWerkTab(){
       if(seen[key])return; seen[key]=1;
       const w=werkPreis(key);
       const echt=gPreisEcht(key);
-      const q=calc.gquelle&&calc.gquelle[key];
+      const q=gQuelle(key);
       rows+=`<tr><td>${c.mm}${echt&&q?`<br><span style="font-size:10.5px;color:var(--ink-soft)">${q}</span>`:''}</td>
         <td>${w>0?fmt(w,2):'–'}</td>
         <td><b>${fmt(gPreis(key),2)}</b>${echt?' <span class="ptag echt">echt</span>':''}</td></tr>`;
