@@ -78,6 +78,10 @@ input[type=range]{width:100%;accent-color:var(--teal);margin-top:6px}
 .feed-pills.three{grid-template-columns:1fr 1fr 1fr;gap:7px}
 .feed-pills.four{grid-template-columns:1fr 1fr;gap:8px}
 .pill.inn.active{border-color:#2F6B4F;background:#E3F1E8}
+.pill.amp1.active{border-color:#2F6B4F;background:#E3F1E8}
+.pill.amp2.active{border-color:#C99A2E;background:#FBF3E1}
+.pill.amp3.active{border-color:var(--warn);background:#FBE7E1}
+.ampdot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;vertical-align:1px}
 .tag.move{background:#E4EFEE;color:var(--teal-deep)}
 .tag.movein{background:#E4EFEE;color:var(--teal-deep)}
 .tag.in{background:#EAF0DC;color:#4A5D23}
@@ -379,7 +383,7 @@ h1 .qmark{width:23px;height:23px;min-width:23px;font-size:14px;margin-left:9px}
 
     <div class="card" style="margin-top:18px" data-fold="sicherung">
       <h2>Datensicherung</h2>
-      <div class="hint" style="margin-bottom:8px">App-Stand: <b>26.08.2026 — Futterlager, Vergleich, Mischen</b></div>
+      <div class="hint" style="margin-bottom:8px">App-Stand: <b>26.08.2026 — Ampel, aktive Mischung, bewusste Abweichung</b></div>
       <div class="hint" style="margin-bottom:12px">Der Text unten ist immer der aktuelle Stand. Lade ihn als Datei herunter oder kopiere ihn — damit stellst du alles jederzeit wieder her, auch in einer neuen Version der App.</div>
       <textarea id="backupBox" rows="4"></textarea>
       <div class="btn-row" style="margin-top:10px">
@@ -425,6 +429,21 @@ h1 .qmark{width:23px;height:23px;min-width:23px;font-size:14px;margin-left:9px}
       <button class="btn ghost" id="noFeedBtn" style="flex:0 0 42%">Heute kein Futter</button>
     </div>
     <div class="hint" style="text-align:center;margin:0 0 16px" id="feedStatus"></div>
+
+    <div class="card" data-fold="ampel">
+      <h2>Fütterungsstärke</h2>
+      <div class="feed-pills three" id="ampPills">
+        <div class="pill amp1" data-amp="gruen"><b>Grün</b>sparsam</div>
+        <div class="pill amp2" data-amp="gelb"><b>Gelb</b>nach Tabelle</div>
+        <div class="pill amp3" data-amp="rot"><b>Rot</b>kräftig</div>
+      </div>
+      <div id="ampOut" style="margin-top:12px"></div>
+      <div class="row2" style="margin-top:14px">
+        <div class="field"><label>Rot: Aufschlag (%)</label><input type="number" id="ampPlus" step="1" min="0" max="100" inputmode="decimal"></div>
+        <div class="field"><label>Grün: Abschlag (%)</label><input type="number" id="ampMinus" step="1" min="0" max="90" inputmode="decimal"></div>
+      </div>
+      <div class="hint" style="margin-bottom:0">Die Stufe gilt für diesen Teich, die Prozentwerte für alle. Gelb rechnet immer genau nach Aller Aqua.</div>
+    </div>
 
     <div class="card" data-fold="menge">
       <h2>Futtermenge</h2>
@@ -551,6 +570,9 @@ h1 .qmark{width:23px;height:23px;min-width:23px;font-size:14px;margin-left:9px}
     <div class="card" data-fold="vergleich">
       <h2>Futtervergleich zum Ziel</h2>
       <div id="compareOut"><div class="hint">Zielgewicht oben eingeben.</div></div>
+      <label class="chk" style="margin-top:14px"><input type="checkbox" id="cmpAll">
+        <span>Fütter ich trotzdem
+        <span style="color:var(--ink-soft);display:block;margin-top:3px;font-weight:400">Holt auch die Sorten in den Vergleich, die bei diesem Gewicht eigentlich nicht in der Tabelle stehen — gekennzeichnet als bewusste Abweichung.</span></span></label>
     </div>
 
     <div class="card" data-fold="mischen">
@@ -563,6 +585,10 @@ h1 .qmark{width:23px;height:23px;min-width:23px;font-size:14px;margin-left:9px}
       <label style="font-size:13px">Anteil A: <b><span id="mixShareVal">50</span> %</b></label>
       <input type="range" id="mixShare" min="0" max="100" value="50" step="5">
       <div id="mixOut" style="margin-top:12px"></div>
+      <label class="chk" style="margin-top:14px"><input type="checkbox" id="mixOn">
+        <span>Diese Mischung wirklich füttern
+        <span style="color:var(--ink-soft);display:block;margin-top:3px;font-weight:400">Die Tagesration wird dann aus beiden Sorten gemischt gerechnet und beim Buchen anteilig von beiden Korngrößen im Lager abgezogen.</span></span></label>
+      <div id="mixLiveOut"></div>
     </div>
 
     <div class="card" data-fold="temp">
@@ -1271,7 +1297,7 @@ function ratioDue(pond){
 }
 function recalcRation(pond){
   const d=dailyFor(pond);
-  pond.ration={kg:d.kg,per100:d.per100,mm:d.cls.mm,
+  pond.ration={kg:d.kg,per100:d.per100,mm:d.mm||d.cls.mm,
     bio:pond.totalKg,avg:pond.avgG,since:today()};
   return pond.ration;
 }
@@ -1281,7 +1307,8 @@ function activeRation(pond){
   if(manualOn(pond)){
     return {kg:pond.manualKg,
       per100:pond.totalKg>0?pond.manualKg/pond.totalKg*100:0,
-      cls:d.cls,product:d.product,manual:true,rec:d.kg,recPer100:d.per100};
+      cls:d.cls,mm:d.mm,product:d.product,manual:true,rec:d.kg,recPer100:d.per100,
+      amp:d.amp,ampFac:d.ampFac,mixed:d.mixed};
   }
   if(pond.rationMode==='daily') return d;
   if(!pond.ration) recalcRation(pond);
@@ -1290,7 +1317,8 @@ function activeRation(pond){
     if(bio>0&&pond.totalKg>0&&(pond.totalKg>bio*1.5||pond.totalKg<bio/1.5)) recalcRation(pond);
   }
   return {kg:pond.ration.kg,per100:pond.ration.per100,
-          cls:d.cls,product:d.product,fixed:true,since:pond.ration.since};
+          cls:d.cls,mm:d.mm,product:d.product,fixed:true,since:pond.ration.since,
+          amp:d.amp,ampFac:d.ampFac,mixed:d.mixed};
 }
 /* Fütterungseinträge (alte Einträge ohne type zählen als Fütterung) */
 function feedLog(pond){return (pond.history||[]).filter(h=>!h.type||h.type==='feed')}
@@ -1311,11 +1339,68 @@ function weekStats(pond){
   };
 }
 
-function dailyFor(pond){
+/* ---------- Fütterungs-Ampel ---------- */
+/* Drei Stufen je Teich: grün sparsam, gelb genau nach Aller Aqua, rot kräftig.
+   Die Prozentwerte hinter rot und grün sind einstellbar, Start bei 20. */
+const AMPNAME={gruen:'Grün — sparsam',gelb:'Gelb — nach Tabelle',rot:'Rot — kräftig'};
+const AMPCOL={gruen:'#2F6B4F',gelb:'#C99A2E',rot:'#C0472B'};
+function ampOf(pond){const a=pond&&pond.amp;return (a==='rot'||a==='gruen')?a:'gelb'}
+function ampPlusPct(){try{const v=Number(calc.ampPlus);return (v>=0&&v<=200)?v:20}catch(e){return 20}}
+function ampMinusPct(){try{const v=Number(calc.ampMinus);return (v>=0&&v<=90)?v:20}catch(e){return 20}}
+function ampelFac(pond){
+  const a=ampOf(pond);
+  if(a==='rot')   return 1+ampPlusPct()/100;
+  if(a==='gruen') return 1-ampMinusPct()/100;
+  return 1;
+}
+
+/* ---------- Aktive Mischung ---------- */
+/* Ist der Haken gesetzt, wird die Tagesration aus beiden Sorten gemischt gerechnet
+   und beim Buchen anteilig von beiden Korngrößen aus dem Lager abgezogen. */
+function mixOn(pond){
+  const m=pond&&pond.mix;
+  return !!(m&&m.on&&m.a&&m.b&&m.a!==m.b&&PRODUCTS[m.a]&&PRODUCTS[m.b]);
+}
+function mixShareOf(pond){
+  const m=pond&&pond.mix;
+  const s=(m&&typeof m.share==='number')?m.share:0.5;
+  return Math.max(0,Math.min(1,s));
+}
+/* Die heutige Tagesmenge, aufgeteilt auf die beiden Korngrößen */
+function mixParts(pond,kg){
+  if(!mixOn(pond)||!(kg>0))return null;
+  const A=PRODUCTS[pond.mix.a], B=PRODUCTS[pond.mix.b], s=mixShareOf(pond);
+  const ca=pickClass(A,pond.avgG), cb=pickClass(B,pond.avgG);
+  return [{key:A.name+'|'+ca.mm,name:A.name,mm:ca.mm,kg:kg*s,anteil:s},
+          {key:B.name+'|'+cb.mm,name:B.name,mm:cb.mm,kg:kg*(1-s),anteil:1-s}];
+}
+
+/* Reine Tabellenmenge — ohne Ampel, ohne Mischung */
+function tableDaily(pond){
   const p=PRODUCTS[pond.feed];
   const c=pickClass(p,pond.avgG);
-  const per100=interpTemp(c.vals,pond.temp);
-  return {kg:(per100/100)*pond.totalKg,per100,cls:c,product:p};
+  return (interpTemp(c.vals,pond.temp)/100)*pond.totalKg;
+}
+/* Tabellenmenge mit Mischung, aber ohne Ampel */
+function dailyRaw(pond){
+  const p=PRODUCTS[pond.feed];
+  const c=pickClass(p,pond.avgG);
+  let per100=interpTemp(c.vals,pond.temp);
+  let mm=c.mm;
+  if(mixOn(pond)){
+    const A=PRODUCTS[pond.mix.a], B=PRODUCTS[pond.mix.b], s=mixShareOf(pond);
+    const ca=pickClass(A,pond.avgG), cb=pickClass(B,pond.avgG);
+    per100=s*interpTemp(ca.vals,pond.temp)+(1-s)*interpTemp(cb.vals,pond.temp);
+    mm=(ca.mm===cb.mm)?ca.mm:(ca.mm+' + '+cb.mm);
+  }
+  return {kg:(per100/100)*pond.totalKg,per100,cls:c,product:p,mm};
+}
+function dailyFor(pond){
+  const d=dailyRaw(pond);
+  const f=ampelFac(pond);
+  return {kg:d.kg*f,per100:d.per100*f,cls:d.cls,product:d.product,mm:d.mm,
+          amp:ampOf(pond),ampFac:f,mixed:mixOn(pond),
+          tabKg:d.kg,tabPer100:d.per100};
 }
 function fedToday(pond){
   const f=feedLog(pond);
@@ -1543,13 +1628,17 @@ function renderDetail(){
     +`${PRODUCTS[p.feed].name} · ≈ ${count.toLocaleString('de-DE')} Fische`;
   document.getElementById('tempVal').textContent=fmt(p.temp,1);
   document.getElementById('dailyKg').innerHTML=`${fmt(d.kg,d.kg<10?3:2)}<span> kg</span>`;
+  const ampTxt = (d.amp&&d.amp!=='gelb')
+    ? ` · ${d.amp==='rot'?'Rot +'+fmt(ampPlusPct(),0):'Grün −'+fmt(ampMinusPct(),0)} %` : '';
   document.getElementById('dailyPct').textContent=
-    d.manual
+    (d.manual
     ? `Deine Menge · Empfehlung wären ${fmt(d.rec,d.rec<10?3:2)} kg (${fmt(d.recPer100,2)} kg je 100 kg)`
     : d.fixed
     ? `Feste Wochenration · ${fmt(d.per100,2)} kg je 100 kg bei Festlegung`
-    : `${fmt(d.per100,2)} kg je 100 kg Fisch bei ${fmt(p.temp,1)} °C`;
-  document.getElementById('pelletSize').textContent=d.cls.mm;
+    : `${fmt(d.per100,2)} kg je 100 kg Fisch bei ${fmt(p.temp,1)} °C`)
+    + (d.manual?'':ampTxt) + (d.mixed?' · gemischt':'');
+  document.getElementById('pelletSize').textContent=d.mm||d.cls.mm;
+  renderAmpel(p,d);
   document.getElementById('biomassNow').textContent=fmt(p.totalKg,1)+' kg';
   const below = p.avgG < d.cls.min, above = p.avgG > d.cls.max;
   document.getElementById('feedHint').innerHTML =
@@ -1768,9 +1857,9 @@ function simulate(pond,targetG,opts){
   const grains=[]; let gi=null;
   const p=PRODUCTS[feedKey];
   // Fütterst du weniger als empfohlen, wächst es entsprechend langsamer
-  const base=dailyFor(pond).kg;
+  const base=tableDaily(pond);
   const fac=opts.factor!=null?opts.factor
-    :(manualOn(pond)&&base>0?pond.manualKg/base:1);
+    :(manualOn(pond)&&base>0?pond.manualKg/base:ampelFac(pond));
   // Deckt das Futter den Zielbereich überhaupt ab?
   const maxClass=p.classes[p.classes.length-1].max;
   while(days<maxDays && avg<targetG){
@@ -1865,8 +1954,13 @@ function renderCompare(p){
   /* Nur Sorten, die zum heutigen Gewicht der Fische gehören.
      Ein 10-g-Fisch bekommt kein 4,5-mm-Mastfutter, ein 120-g-Fisch kein Brutfutter —
      solche Zeilen wären aus der Tabelle heraus gerechnet und damit erfunden. */
-  const passend=alle.filter(r=>r.passt&&r.s&&r.s.reached).sort((a,b)=>a.s.days-b.s.days);
-  const andere=alle.filter(r=>!r.passt).sort((a,b)=>a.minClass-b.minClass);
+  let trotzdem=false;
+  try{trotzdem=!!calc.cmpAll}catch(e){}
+  const chk=document.getElementById('cmpAll');
+  if(chk)chk.checked=trotzdem;
+
+  const passend=alle.filter(r=>(r.passt||trotzdem)&&r.s&&r.s.reached).sort((a,b)=>a.s.days-b.s.days);
+  const andere=alle.filter(r=>!r.passt&&!(trotzdem&&r.s&&r.s.reached)).sort((a,b)=>a.minClass-b.minClass);
 
   if(passend.length===0){
     const naechste=andere.filter(r=>!r.zuGross)[0];
@@ -1879,11 +1973,14 @@ function renderCompare(p){
   const rows=passend.map(r=>{
     const cur=r.key===p.feed;
     const note=[];
+    if(!r.passt) note.push(r.zuGross
+      ? `<b>bewusste Abweichung</b> — Tabelle endet bei ${fmt(r.maxClass,0)} g, deine Fische sind schwerer`
+      : `<b>bewusste Abweichung</b> — Tabelle beginnt erst bei ${fmt(r.minClass,0)} g, deine Fische sind kleiner`);
     if(!r.covers) note.push(`nur bis ${fmt(r.maxClass,0)} g — danach musst du wechseln`);
     const mehr=r.s.days-best.s.days;
     if(mehr>0) note.push(`${mehr} Tage länger`);
     return `<tr${cur?' style="background:#F2F8F7"':''}>
-      <td class="name">${r.prod.name}${cur?' ●':''}</td>
+      <td class="name">${r.prod.name}${cur?' ●':''}${r.passt?'':' ⚠'}</td>
       <td>${r.s.days}</td>
       <td>${fmt(r.s.feedTotal,1)}</td>
       <td>${fmt(r.prod.defFcr,2)}</td>
@@ -1913,7 +2010,9 @@ function renderCompare(p){
     </table>
     <div class="hint" style="margin-top:10px">
       ${wahl}
-      Verglichen werden nur Sorten, die deine Fische bei ${fmt(p.avgG,p.avgG<10?1:0)} g schon fressen können.
+      ${trotzdem
+        ? `Mit ⚠ markierte Zeilen liegen außerhalb der Aller-Aqua-Tabelle — die Werte sind aus der nächstgelegenen Zeile weitergerechnet, also eine Schätzung.`
+        : `Verglichen werden nur Sorten, die deine Fische bei ${fmt(p.avgG,p.avgG<10?1:0)} g schon fressen können.`}
       Gerechnet mit dem typischen Futterquotienten je Sorte. ● markiert dein aktuelles Futter.
     </div>
     ${spaeterHtml}`;
@@ -1928,13 +2027,14 @@ function simulateMix(pond,targetG,ka,kb,share){
   const count=pond.avgG>0?pond.totalKg*1000/pond.avgG:0;
   if(count<=0)return null;
   const a=Math.max(0,Math.min(1,share));
+  const ampF=ampelFac(pond);
   const fcr=a*A.defFcr+(1-a)*B.defFcr;
   let bio=pond.totalKg, avg=pond.avgG, days=0;
   const gA={}, gB={};
   let kgA=0, kgB=0;
   while(days<1600 && avg<targetG){
     const ca=pickClass(A,avg), cb=pickClass(B,avg);
-    const per100=a*interpTemp(ca.vals,pond.temp)+(1-a)*interpTemp(cb.vals,pond.temp);
+    const per100=(a*interpTemp(ca.vals,pond.temp)+(1-a)*interpTemp(cb.vals,pond.temp))*ampF;
     const feed=(per100/100)*bio;
     const fa=feed*a, fb=feed*(1-a);
     kgA+=fa; kgB+=fb;
@@ -1957,8 +2057,11 @@ function mixFill(){
   const va=a.value, vb=b.value;
   a.innerHTML=opts; b.innerHTML=opts;
   const p=ponds.find(x=>x.id===currentId);
-  a.value=va||(p?p.feed:'brut')||'brut';
-  b.value=vb||mixVorschlag(p,a.value);
+  const m=p&&p.mix;
+  a.value=(m&&m.a)||va||(p?p.feed:'brut')||'brut';
+  b.value=(m&&m.b)||vb||mixVorschlag(p,a.value);
+  const sl=document.getElementById('mixShare');
+  if(sl&&m&&typeof m.share==='number') sl.value=Math.round(m.share*100);
 }
 /* Sinnvoller Partner: die Sorte, die als nächstes oder davor dran ist */
 function mixVorschlag(p,ka){
@@ -1972,6 +2075,56 @@ function mixVorschlag(p,ka){
   return sortiert[0]===ka?(sortiert[1]||ka):sortiert[0];
 }
 
+/* ---------- Fütterungs-Ampel: Anzeige und Bedienung ---------- */
+function renderAmpel(p,d){
+  const a=ampOf(p);
+  document.querySelectorAll('#ampPills .pill').forEach(el=>
+    el.classList.toggle('active',el.dataset.amp===a));
+  const pi=document.getElementById('ampPlus'), mi=document.getElementById('ampMinus');
+  if(pi&&document.activeElement!==pi) pi.value=ampPlusPct();
+  if(mi&&document.activeElement!==mi) mi.value=ampMinusPct();
+  const out=document.getElementById('ampOut');
+  if(!out)return;
+  const tab=tableDaily(p);
+  const soll=(d&&!d.manual)?d.kg:dailyFor(p).kg;
+  const diff=soll-tab;
+  if(manualOn(p)){
+    out.innerHTML='<div class="hint" style="margin:0">Du fütterst gerade eine feste eigene Menge — die Ampel wirkt erst wieder, wenn du das abschaltest.</div>';
+  }else{
+    out.innerHTML=`<div class="arrowbox" style="margin:0">
+      <h3><span class="ampdot" style="background:${AMPCOL[a]}"></span>${AMPNAME[a]}</h3>
+      <div class="calcrow"><span>Aller Aqua Tabelle</span><span>${fmt(tab,tab<10?3:2)} kg</span></div>
+      <div class="calcrow sum"><span>Deine Tagesration</span><span>${fmt(soll,soll<10?3:2)} kg${Math.abs(diff)>0.0005?` (${diff>0?'+':'−'}${fmt(Math.abs(diff),3)} kg)`:''}</span></div>
+    </div>`;
+  }
+  setSum('ampel',`<span class="ampdot" style="background:${AMPCOL[a]}"></span>${AMPNAME[a]}`);
+}
+
+document.querySelectorAll('#ampPills .pill').forEach(el=>{
+  el.addEventListener('click',async()=>{
+    const p=ponds.find(x=>x.id===currentId);
+    if(!p)return;
+    p.amp=el.dataset.amp;
+    if((p.rationMode||'weekly')!=='daily') recalcRation(p);
+    renderDetail();
+    await save();
+    toast(`Fütterungsstärke: ${AMPNAME[p.amp]}`);
+  });
+});
+['ampPlus','ampMinus'].forEach(id=>{
+  const el=document.getElementById(id);
+  if(!el)return;
+  el.addEventListener('change',async()=>{
+    const v=parseFloat(el.value);
+    if(!isNaN(v)&&v>=0) calc[id==='ampPlus'?'ampPlus':'ampMinus']=v;
+    calcSave();
+    const p=ponds.find(x=>x.id===currentId);
+    if(p&&(p.rationMode||'weekly')!=='daily'&&ampOf(p)!=='gelb') recalcRation(p);
+    if(p)renderDetail();
+    await save();
+  });
+});
+
 function renderMix(p){
   const out=document.getElementById('mixOut');
   if(!out)return;
@@ -1982,6 +2135,12 @@ function renderMix(p){
   const share=sl?Number(sl.value)/100:0.5;
   const sv=document.getElementById('mixShareVal');
   if(sv)sv.textContent=Math.round(share*100);
+  const chk=document.getElementById('mixOn');
+  if(chk){
+    chk.checked=mixOn(p);
+    chk.disabled=(!ka||!kb||ka===kb);
+  }
+  renderMixLive(p);
   if(isNaN(t)||t<=0||t<=p.avgG){out.innerHTML='<div class="hint">Zielgewicht oben in der Mastplanung eintragen.</div>';setSum('mischen','');return}
   if(!ka||!kb){out.innerHTML='<div class="hint">Zwei Sorten wählen.</div>';return}
   if(ka===kb){out.innerHTML='<div class="hint">Zweimal dieselbe Sorte — such dir zwei verschiedene aus.</div>';setSum('mischen','');return}
@@ -2022,6 +2181,22 @@ function renderMix(p){
       Faustregel: kleines Korn länger geben hält die Fische beisammen, früher hochgehen lässt die kräftigen davonziehen.
     </div>`;
   setSum('mischen',`${Math.round(share*100)}/${Math.round((1-share)*100)} · ${m.days} Tage · ${eur(ges)}`);
+}
+
+/* Was die aktive Mischung heute konkret bedeutet */
+function renderMixLive(p){
+  const box=document.getElementById('mixLiveOut');
+  if(!box)return;
+  if(!mixOn(p)){box.innerHTML='';return}
+  let r=null; try{r=activeRation(p)}catch(e){}
+  const kg=r?r.kg:0;
+  const parts=mixParts(p,kg)||[];
+  box.innerHTML=`<div class="arrowbox" style="margin-top:4px">
+    <h3>Wird so gefüttert</h3>
+    <div class="calcrow"><span>Tagesration gesamt</span><span><b>${fmt(kg,kg<10?3:2)} kg</b></span></div>
+    ${parts.map(x=>`<div class="calcrow"><span>${x.name} ${x.mm}</span><span>${fmt(x.kg,x.kg<10?3:2)} kg · ${Math.round(x.anteil*100)} %</span></div>`).join('')}
+    <div class="hint" style="margin:8px 0 0">Beim Buchen geht der Abzug getrennt auf beide Korngrößen im Lager.</div>
+  </div>`;
 }
 
 function mixSatz(nurA,nurB,m,nA,nB,eA,eB,eM){
@@ -2677,7 +2852,8 @@ async function undoEntry(hid){
   } else {
     p.totalKg=Math.max(0,p.totalKg-h.gain);
     if(p.count>0) p.avgG=p.totalKg*1000/p.count;
-    if(h.gkey&&h.feed>0) lagZugang(h.gkey,h.feed);
+    if(h.gparts&&h.gparts.length) h.gparts.forEach(x=>{if(x.kg>0)lagZugang(x.key,x.kg)});
+    else if(h.gkey&&h.feed>0) lagZugang(h.gkey,h.feed);
   }
   p.history.splice(idx,1);
   document.getElementById('editTotal').value=fmt(p.totalKg,2).replace(',','.');
@@ -2693,12 +2869,17 @@ function bookFeed(p){
   const d=activeRation(p);
   const gain=d.kg/p.fcr;
   const gkey=(d.cls&&PRODUCTS[p.feed])?(PRODUCTS[p.feed].name+'|'+d.cls.mm):'';
+  const parts=mixParts(p,d.kg);
   p.count=p.avgG>0?Math.round(p.totalKg*1000/p.avgG):0;
   p.totalKg=p.totalKg+gain;
   if(p.count>0) p.avgG=p.totalKg*1000/p.count;
-  p.history.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,5),
-    date:today(),feed:d.kg,gain,after:p.totalKg,gkey});
-  if(gkey&&d.kg>0) lagAbzug(gkey,d.kg);
+  const rec={id:Date.now().toString(36)+Math.random().toString(36).slice(2,5),
+    date:today(),feed:d.kg,gain,after:p.totalKg,gkey};
+  if(parts) rec.gparts=parts.map(x=>({key:x.key,kg:Math.round(x.kg*1000)/1000}));
+  if(d.amp&&d.amp!=='gelb') rec.amp=d.amp;
+  p.history.push(rec);
+  if(parts) parts.forEach(x=>{if(x.kg>0)lagAbzug(x.key,x.kg)});
+  else if(gkey&&d.kg>0) lagAbzug(gkey,d.kg);
   return {kg:d.kg,gain};
 }
 
@@ -2763,18 +2944,57 @@ document.getElementById('targetG').addEventListener('input',async e=>{
   await save();
 });
 
+(function(){
+  const el=document.getElementById('cmpAll');
+  if(!el)return;
+  el.addEventListener('change',()=>{
+    calc.cmpAll=el.checked;
+    calcSave();
+    const p=ponds.find(x=>x.id===currentId);
+    if(p)renderCompare(p);
+  });
+})();
+
+function mixCollect(p){
+  const ka=(document.getElementById('mixA')||{}).value;
+  const kb=(document.getElementById('mixB')||{}).value;
+  const sl=document.getElementById('mixShare');
+  const share=sl?Number(sl.value)/100:0.5;
+  const on=!!(document.getElementById('mixOn')||{}).checked;
+  p.mix={a:ka,b:kb,share,on:on&&!!ka&&!!kb&&ka!==kb};
+}
+
 ['mixA','mixB','mixShare'].forEach(id=>{
   const el=document.getElementById(id);
   if(!el)return;
-  el.addEventListener('input',()=>{
+  const upd=async()=>{
     const p=ponds.find(x=>x.id===currentId);
-    if(p)renderMix(p);
-  });
-  el.addEventListener('change',()=>{
-    const p=ponds.find(x=>x.id===currentId);
-    if(p)renderMix(p);
-  });
+    if(!p)return;
+    const war=mixOn(p);
+    mixCollect(p);
+    if(war||mixOn(p)){
+      if((p.rationMode||'weekly')!=='daily') recalcRation(p);
+      renderDetail();
+      await save();
+    } else { renderMix(p); await save(); }
+  };
+  el.addEventListener('input',upd);
+  el.addEventListener('change',upd);
 });
+
+(function(){
+  const el=document.getElementById('mixOn');
+  if(!el)return;
+  el.addEventListener('change',async()=>{
+    const p=ponds.find(x=>x.id===currentId);
+    if(!p)return;
+    mixCollect(p);
+    if((p.rationMode||'weekly')!=='daily') recalcRation(p);
+    renderDetail();
+    await save();
+    toast(mixOn(p)?'Mischung ist aktiv — Abzug geht auf beide Sorten.':'Mischung abgeschaltet.');
+  });
+})();
 
 document.getElementById('tempSlider').addEventListener('input',async e=>{
   const p=ponds.find(x=>x.id===currentId);
@@ -3309,9 +3529,12 @@ function grainKeyOf(pond){
 function lagBedarfTag(){
   const m={};
   ponds.forEach(p=>{
-    const key=grainKeyOf(p); if(!key)return;
     let r=null; try{r=activeRation(p)}catch(e){}
-    if(r&&r.kg>0)m[key]=(m[key]||0)+r.kg;
+    if(!(r&&r.kg>0))return;
+    const parts=mixParts(p,r.kg);
+    if(parts){parts.forEach(x=>{if(x.kg>0)m[x.key]=(m[x.key]||0)+x.kg});return}
+    const key=grainKeyOf(p); if(!key)return;
+    m[key]=(m[key]||0)+r.kg;
   });
   return m;
 }
@@ -3620,7 +3843,8 @@ const CALC_DEF={
   gpreis:{}, mastKanal:'priv',
   aufschlag:0.20, mwstAuf:true, goldSupport:true,
   aufschlagP:{brut:1.06, futura2:0.20, gold:0.20, silver:0.20}, gquelle:{}, eink:[],
-  lager:{}, lagerLog:[], vorlauf:14, wechsel:{brut:15, futura2:40}
+  lager:{}, lagerLog:[], vorlauf:14, wechsel:{brut:15, futura2:40},
+  ampPlus:20, ampMinus:20, cmpAll:false
 };
 let calc=JSON.parse(JSON.stringify(CALC_DEF));
 
@@ -4546,6 +4770,10 @@ function initFin(){
 
 /* ================= Erklärungen ================= */
 const HELP={
+ampel:`<p><b>Wofür:</b> Wenn du bewusst kräftiger oder sparsamer fütterst als die Tabelle sagt — etwa weil du bestimmte Fische früher brauchst.</p>
+<p><b>Gelb</b> rechnet genau nach Aller Aqua. <b>Rot</b> legt den eingestellten Prozentsatz drauf, <b>Grün</b> zieht ihn ab. Start ist bei zwanzig Prozent, du kannst beides selbst ändern.</p>
+<p>Die Stufe gilt pro Teich, die Prozentwerte für alle Teiche zusammen. Die Ampel wirkt auf die Tagesration, auf die Mastplanung, auf den Futtervergleich und auf den Lagerbedarf — überall die gleiche Zahl.</p>
+<p>Fütterst du eine feste eigene Menge, ist die Ampel ausgesetzt: dann zählt deine Zahl.</p>`,
 mischen:`<p><b>Wofür:</b> Wenn du zwei Korngrößen zusammen fütterst oder das kleine Korn länger gibst.</p>
 <p>Die App mischt die Tabellenwerte im eingestellten Verhältnis und rechnet daraus Dauer, Futtermenge je Sorte und Kosten. Darunter siehst du, was die reinen Varianten kosten würden.</p>
 <p>Der Satz am Ende sagt dir, was dich ein gewonnener Tag kostet — damit kannst du entscheiden, ob sich das teurere Futter für dich lohnt.</p>
