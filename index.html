@@ -379,7 +379,7 @@ h1 .qmark{width:23px;height:23px;min-width:23px;font-size:14px;margin-left:9px}
 
     <div class="card" style="margin-top:18px" data-fold="sicherung">
       <h2>Datensicherung</h2>
-      <div class="hint" style="margin-bottom:8px">App-Stand: <b>26.08.2026 — Futterlager</b></div>
+      <div class="hint" style="margin-bottom:8px">App-Stand: <b>26.08.2026 — Futterlager, Vergleich, Mischen</b></div>
       <div class="hint" style="margin-bottom:12px">Der Text unten ist immer der aktuelle Stand. Lade ihn als Datei herunter oder kopiere ihn — damit stellst du alles jederzeit wieder her, auch in einer neuen Version der App.</div>
       <textarea id="backupBox" rows="4"></textarea>
       <div class="btn-row" style="margin-top:10px">
@@ -551,6 +551,18 @@ h1 .qmark{width:23px;height:23px;min-width:23px;font-size:14px;margin-left:9px}
     <div class="card" data-fold="vergleich">
       <h2>Futtervergleich zum Ziel</h2>
       <div id="compareOut"><div class="hint">Zielgewicht oben eingeben.</div></div>
+    </div>
+
+    <div class="card" data-fold="mischen">
+      <h2>Zwei Sorten mischen</h2>
+      <div class="hint" style="margin-bottom:12px">Kleines Korn länger geben oder untermischen: die Fische wachsen gleichmäßiger, aber langsamer. Größeres Korn früher: schneller, dafür ziehen die kräftigen Fische davon.</div>
+      <div class="row2">
+        <div class="field"><label>Sorte A</label><select id="mixA"></select></div>
+        <div class="field"><label>Sorte B</label><select id="mixB"></select></div>
+      </div>
+      <label style="font-size:13px">Anteil A: <b><span id="mixShareVal">50</span> %</b></label>
+      <input type="range" id="mixShare" min="0" max="100" value="50" step="5">
+      <div id="mixOut" style="margin-top:12px"></div>
     </div>
 
     <div class="card" data-fold="temp">
@@ -1574,6 +1586,7 @@ function renderDetail(){
   const sim=renderPrognosis(p);
   renderGrainPlan(p,parseFloat(document.getElementById('targetG').value));
   renderCompare(p);
+  mixFill(); renderMix(p);
   renderChart(p,sim);
   renderManual(p);
   renderOutForm();
@@ -1717,7 +1730,7 @@ function renderGrainPlan(pond,targetG){
 
   box.innerHTML=`<div class="arrowbox" style="margin-top:14px">
     <h3>Was du einkaufen musst</h3>
-    <div class="hint" style="margin-bottom:10px">Von ${fmt(pond.avgG,pond.avgG<10?1:0)} g bis ${fmt(targetG,0)} g, mit Futterwechsel wie in der Praxis: Brutfutter bis 15 g, Futura 2 mm bis 40 g, danach Mastfutter. Sackgröße und Preise kannst du ändern.</div>
+    <div class="hint" style="margin-bottom:10px">Von ${fmt(pond.avgG,pond.avgG<10?1:0)} g bis ${fmt(targetG,0)} g, mit Futterwechsel wie in der Praxis: Brutfutter bis ${fmt((calc.wechsel&&calc.wechsel.brut)||15,0)} g, Futura 2 mm bis ${fmt((calc.wechsel&&calc.wechsel.futura2)||40,0)} g, danach Mastfutter. Sackgröße und Preise kannst du ändern.</div>
     ${rows}
     <div class="calcrow sum"><span>Gesamt · ${s.days} Tage</span><span>${fmt(totalKg,1)} kg · ${eur(futterKost)}</span></div>
     ${money}
@@ -1839,31 +1852,59 @@ function renderCompare(p){
   const t=parseFloat(document.getElementById('targetG').value);
   if(isNaN(t)||t<=0||t<=p.avgG){ out.innerHTML='<div class="hint">Zielgewicht oben eingeben.</div>'; return; }
 
-  const results=Object.entries(PRODUCTS).map(([k,prod])=>{
-    const maxClass=prod.classes[prod.classes.length-1].max;
+  const alle=Object.entries(PRODUCTS).map(([k,prod])=>{
     const minClass=prod.classes[0].min;
+    const maxClass=prod.classes[prod.classes.length-1].max;
     const s=simulate(p,t,{feed:k,fcr:prod.defFcr,maxDays:1200});
-    return {key:k,prod,s,
-      covers: t<=maxClass,
-      startsBelow: p.avgG<minClass};
-  }).filter(r=>r.s&&r.s.reached);
+    return {key:k,prod,s,minClass,maxClass,
+      passt: p.avgG>=minClass && p.avgG<=maxClass,
+      zuGross: p.avgG>maxClass,
+      covers: t<=maxClass};
+  });
 
-  if(results.length===0){ out.innerHTML='<div class="hint">Kein Vergleich möglich.</div>'; return; }
-  results.sort((a,b)=>a.s.days-b.s.days);
-  const best=results[0];
+  /* Nur Sorten, die zum heutigen Gewicht der Fische gehören.
+     Ein 10-g-Fisch bekommt kein 4,5-mm-Mastfutter, ein 120-g-Fisch kein Brutfutter —
+     solche Zeilen wären aus der Tabelle heraus gerechnet und damit erfunden. */
+  const passend=alle.filter(r=>r.passt&&r.s&&r.s.reached).sort((a,b)=>a.s.days-b.s.days);
+  const andere=alle.filter(r=>!r.passt).sort((a,b)=>a.minClass-b.minClass);
 
-  const rows=results.map(r=>{
+  if(passend.length===0){
+    const naechste=andere.filter(r=>!r.zuGross)[0];
+    out.innerHTML=`<div class="hint">Bei ${fmt(p.avgG,p.avgG<10?1:0)} g passt keine Sorte aus der Tabelle bis ${fmt(t,0)} g.
+      ${naechste?`Die nächste beginnt bei ${fmt(naechste.minClass,0)} g (${naechste.prod.name}).`:''}</div>`;
+    return;
+  }
+  const best=passend[0];
+
+  const rows=passend.map(r=>{
     const cur=r.key===p.feed;
     const note=[];
-    if(!r.covers) note.push('Tabelle endet bei '+r.prod.classes[r.prod.classes.length-1].max+' g');
-    if(r.startsBelow) note.push('startet unter Tabelle');
+    if(!r.covers) note.push(`nur bis ${fmt(r.maxClass,0)} g — danach musst du wechseln`);
+    const mehr=r.s.days-best.s.days;
+    if(mehr>0) note.push(`${mehr} Tage länger`);
     return `<tr${cur?' style="background:#F2F8F7"':''}>
       <td class="name">${r.prod.name}${cur?' ●':''}</td>
       <td>${r.s.days}</td>
       <td>${fmt(r.s.feedTotal,1)}</td>
-      <td>${fmt(r.fcrShown||r.prod.defFcr,2)}</td>
+      <td>${fmt(r.prod.defFcr,2)}</td>
     </tr>${note.length?`<tr><td colspan="4" style="font-family:Inter,sans-serif;font-size:11px;color:#4B5F63;padding-top:0;border:none">↳ ${note.join(' · ')}</td></tr>`:''}`;
   }).join('');
+
+  const spaeterHtml = andere.length
+    ? `<div class="hint" style="margin-top:12px"><b>Passt bei diesem Gewicht nicht:</b><br>`
+      + andere.map(r=>{
+          const cur=r.key===p.feed;
+          const zeit=r.zuGross
+            ? `nur bis ${fmt(r.maxClass,0)} g — dafür sind die Fische zu groß`
+            : `erst ab ${fmt(r.minClass,0)} g — dafür sind die Fische noch zu klein`;
+          return `${r.prod.name} — ${zeit}${cur?' <b>(das fütterst du gerade)</b>':''}`;
+        }).join('<br>')
+      + `</div>`
+    : '';
+
+  const wahl = passend.length>1
+    ? `Schnellster Weg zu ${fmt(t,0)} g: <b>${best.prod.name}</b> in ${best.s.days} Tagen mit ${fmt(best.s.feedTotal,1)} kg Futter.`
+    : `Bei ${fmt(p.avgG,p.avgG<10?1:0)} g passt nur <b>${best.prod.name}</b>.`;
 
   out.innerHTML=`
     <table class="log">
@@ -1871,10 +1912,129 @@ function renderCompare(p){
       <tbody>${rows}</tbody>
     </table>
     <div class="hint" style="margin-top:10px">
-      Schnellster Weg zu ${fmt(t,0)} g: <b>${best.prod.name}</b> in ${best.s.days} Tagen mit ${fmt(best.s.feedTotal,1)} kg Futter.
+      ${wahl}
+      Verglichen werden nur Sorten, die deine Fische bei ${fmt(p.avgG,p.avgG<10?1:0)} g schon fressen können.
       Gerechnet mit dem typischen Futterquotienten je Sorte. ● markiert dein aktuelles Futter.
-      Eine Sorte allein deckt die ganze Mast selten ab — was du wirklich brauchst, steht oben unter „Was du einkaufen musst".
+    </div>
+    ${spaeterHtml}`;
+}
+
+/* ---------- Zwei Sorten mischen ---------- */
+/* Blendet die Tabellenwerte zweier Sorten anteilig.
+   Die Tagesmenge und der Futterquotient werden im gleichen Verhältnis gemischt. */
+function simulateMix(pond,targetG,ka,kb,share){
+  const A=PRODUCTS[ka], B=PRODUCTS[kb];
+  if(!A||!B)return null;
+  const count=pond.avgG>0?pond.totalKg*1000/pond.avgG:0;
+  if(count<=0)return null;
+  const a=Math.max(0,Math.min(1,share));
+  const fcr=a*A.defFcr+(1-a)*B.defFcr;
+  let bio=pond.totalKg, avg=pond.avgG, days=0;
+  const gA={}, gB={};
+  let kgA=0, kgB=0;
+  while(days<1600 && avg<targetG){
+    const ca=pickClass(A,avg), cb=pickClass(B,avg);
+    const per100=a*interpTemp(ca.vals,pond.temp)+(1-a)*interpTemp(cb.vals,pond.temp);
+    const feed=(per100/100)*bio;
+    const fa=feed*a, fb=feed*(1-a);
+    kgA+=fa; kgB+=fb;
+    const kA=A.name+'|'+ca.mm, kB=B.name+'|'+cb.mm;
+    gA[kA]=(gA[kA]||0)+fa; gB[kB]=(gB[kB]||0)+fb;
+    bio+=feed/fcr;
+    avg=bio*1000/count;
+    days++;
+  }
+  const kost=k=>Object.entries(k).reduce((s,e)=>s+e[1]*gPreis(e[0]),0);
+  return {days,kgA,kgB,gA,gB,avg,bio,fcr,
+    eurA:kost(gA), eurB:kost(gB),
+    reached:avg>=targetG};
+}
+
+function mixFill(){
+  const opts=Object.entries(PRODUCTS).map(([k,v])=>`<option value="${k}">${v.name}</option>`).join('');
+  const a=document.getElementById('mixA'), b=document.getElementById('mixB');
+  if(!a||!b)return;
+  const va=a.value, vb=b.value;
+  a.innerHTML=opts; b.innerHTML=opts;
+  const p=ponds.find(x=>x.id===currentId);
+  a.value=va||(p?p.feed:'brut')||'brut';
+  b.value=vb||mixVorschlag(p,a.value);
+}
+/* Sinnvoller Partner: die Sorte, die als nächstes oder davor dran ist */
+function mixVorschlag(p,ka){
+  const keys=Object.keys(PRODUCTS);
+  if(!p)return keys[0];
+  const min=k=>PRODUCTS[k].classes[0].min;
+  const sortiert=keys.slice().sort((x,y)=>min(x)-min(y));
+  const i=sortiert.indexOf(ka);
+  if(i>=0 && i+1<sortiert.length) return sortiert[i+1];
+  if(i>0) return sortiert[i-1];
+  return sortiert[0]===ka?(sortiert[1]||ka):sortiert[0];
+}
+
+function renderMix(p){
+  const out=document.getElementById('mixOut');
+  if(!out)return;
+  const t=parseFloat(document.getElementById('targetG').value);
+  const ka=(document.getElementById('mixA')||{}).value;
+  const kb=(document.getElementById('mixB')||{}).value;
+  const sl=document.getElementById('mixShare');
+  const share=sl?Number(sl.value)/100:0.5;
+  const sv=document.getElementById('mixShareVal');
+  if(sv)sv.textContent=Math.round(share*100);
+  if(isNaN(t)||t<=0||t<=p.avgG){out.innerHTML='<div class="hint">Zielgewicht oben in der Mastplanung eintragen.</div>';setSum('mischen','');return}
+  if(!ka||!kb){out.innerHTML='<div class="hint">Zwei Sorten wählen.</div>';return}
+  if(ka===kb){out.innerHTML='<div class="hint">Zweimal dieselbe Sorte — such dir zwei verschiedene aus.</div>';setSum('mischen','');return}
+
+  const m=simulateMix(p,t,ka,kb,share);
+  const rein=[0,1].map(x=>simulateMix(p,t,ka,kb,x));
+  if(!m||!m.reached){out.innerHTML='<div class="hint">Mit dieser Mischung wird das Ziel nicht erreicht. Werte prüfen.</div>';return}
+
+  const nA=PRODUCTS[ka].name, nB=PRODUCTS[kb].name;
+  const ges=m.eurA+m.eurB;
+  const nurA=rein[1], nurB=rein[0];
+  const eurNurA=nurA?nurA.eurA+nurA.eurB:0, eurNurB=nurB?nurB.eurA+nurB.eurB:0;
+
+  const zeile=(nm,kg,eur)=>`<div class="calcrow"><span>${nm}</span><span>${fmt(kg,kg<10?2:1)} kg · ${eur2?eur2(eur):eur(eur)}</span></div>`;
+
+  out.innerHTML=`
+    <div class="arrowbox">
+      <h3>${Math.round(share*100)} % ${nA} · ${Math.round((1-share)*100)} % ${nB}</h3>
+      <div class="calcrow"><span>Dauer bis ${fmt(t,0)} g</span><span><b>${m.days} Tage</b> · fertig ${dateIn(m.days)}</span></div>
+      <div class="calcrow"><span>Futterquotient</span><span>${fmt(m.fcr,2)}</span></div>
+      ${zeile(nA,m.kgA,m.eurA)}
+      ${zeile(nB,m.kgB,m.eurB)}
+      <div class="calcrow sum"><span>Futter gesamt</span><span>${fmt(m.kgA+m.kgB,1)} kg · ${eur(ges)}</span></div>
+    </div>
+    <table class="log" style="margin-top:4px">
+      <thead><tr><th>Variante</th><th>Tage</th><th>Futter €</th></tr></thead>
+      <tbody>
+        <tr><td class="name">nur ${nA}</td><td>${nurA?nurA.days:'–'}</td><td>${nurA?eur(eurNurA):'–'}</td></tr>
+        <tr style="background:#F2F8F7"><td class="name">gemischt</td><td>${m.days}</td><td>${eur(ges)}</td></tr>
+        <tr><td class="name">nur ${nB}</td><td>${nurB?nurB.days:'–'}</td><td>${nurB?eur(eurNurB):'–'}</td></tr>
+      </tbody>
+    </table>
+    <div class="hint" style="margin-top:10px">
+      ${mixSatz(nurA,nurB,m,nA,nB,eurNurA,eurNurB,ges)}
+    </div>
+    <div class="hint" style="margin-top:8px">
+      Wie gleichmäßig der Bestand bleibt, steht in keiner Tabelle — das ist Erfahrung.
+      Faustregel: kleines Korn länger geben hält die Fische beisammen, früher hochgehen lässt die kräftigen davonziehen.
     </div>`;
+  setSum('mischen',`${Math.round(share*100)}/${Math.round((1-share)*100)} · ${m.days} Tage · ${eur(ges)}`);
+}
+
+function mixSatz(nurA,nurB,m,nA,nB,eA,eB,eM){
+  if(!nurA||!nurB)return 'Vergleich nicht möglich.';
+  const schnell = nurA.days<=nurB.days ? {n:nA,d:nurA.days,e:eA} : {n:nB,d:nurB.days,e:eB};
+  const guenst  = eA<=eB ? {n:nA,d:nurA.days,e:eA} : {n:nB,d:nurB.days,e:eB};
+  if(schnell.n===guenst.n)
+    return `<b>${schnell.n}</b> ist hier beides — schneller und günstiger. Mischen bringt dann nichts.`;
+  const tage=Math.abs(nurA.days-nurB.days);
+  const geld=Math.abs(eA-eB);
+  const proTag=tage>0?geld/tage:0;
+  return `<b>${schnell.n}</b> ist ${tage} Tage schneller, kostet aber ${eur(geld)} mehr — das sind ${eur(proTag)} je gewonnenem Tag.
+    Die Mischung liegt bei ${m.days} Tagen und ${eur(eM)}.`;
 }
 
 /* ---------- Verlaufskurve ---------- */
@@ -2598,8 +2758,22 @@ document.getElementById('targetG').addEventListener('input',async e=>{
   const sim=renderPrognosis(p);
   renderGrainPlan(p,parseFloat(document.getElementById('targetG').value));
   renderCompare(p);
+  renderMix(p);
   renderChart(p,sim);
   await save();
+});
+
+['mixA','mixB','mixShare'].forEach(id=>{
+  const el=document.getElementById(id);
+  if(!el)return;
+  el.addEventListener('input',()=>{
+    const p=ponds.find(x=>x.id===currentId);
+    if(p)renderMix(p);
+  });
+  el.addEventListener('change',()=>{
+    const p=ponds.find(x=>x.id===currentId);
+    if(p)renderMix(p);
+  });
 });
 
 document.getElementById('tempSlider').addEventListener('input',async e=>{
@@ -4372,6 +4546,10 @@ function initFin(){
 
 /* ================= Erklärungen ================= */
 const HELP={
+mischen:`<p><b>Wofür:</b> Wenn du zwei Korngrößen zusammen fütterst oder das kleine Korn länger gibst.</p>
+<p>Die App mischt die Tabellenwerte im eingestellten Verhältnis und rechnet daraus Dauer, Futtermenge je Sorte und Kosten. Darunter siehst du, was die reinen Varianten kosten würden.</p>
+<p>Der Satz am Ende sagt dir, was dich ein gewonnener Tag kostet — damit kannst du entscheiden, ob sich das teurere Futter für dich lohnt.</p>
+<p><b>Was die App nicht rechnen kann:</b> wie gleichmäßig der Bestand bleibt. Kleines Korn länger geben hält die Fische beisammen, weil auch die schwächeren mitkommen. Früher hochgehen macht schneller, aber die kräftigen ziehen davon. Das steht in keiner Tabelle.</p>`,
 lagBestand:`<p><b>Wofür:</b> Der Überblick, was im Lager liegt und wie lange es noch reicht.</p>
 <p>Die Ampel hängt nicht an den Kilos, sondern an der Reichweite. Ein 20-Kilo-Sack Brutfutter bei 200 Gramm am Tag reicht drei Monate, ein 25-Kilo-Sack 4,5 mm bei 2 Kilo am Tag keine zwei Wochen — deshalb rechnet die App je Sorte den <b>Mindestbestand</b> aus: Tagesbedarf mal Vorwarnzeit.</p>
 <p>Fällt der Bestand darunter, wird die Zeile rot und die App sagt dir, wie viele Sack du brauchst und wo du sie holst: ein bis zwei Sack beim Erzgebirge Shop, mehr bei Sauer.</p>
