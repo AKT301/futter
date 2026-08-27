@@ -330,6 +330,7 @@ h1 .qmark{width:23px;height:23px;min-width:23px;font-size:14px;margin-left:9px}
 .inv-note{text-align:center;font-size:10.5px;line-height:1.7;margin-top:16px;color:#333}
 .inv-bank{text-align:center;font-size:10.5px;margin-top:8px;font-weight:600}
 .inv-web{text-align:center;font-size:10.5px;margin-top:6px;font-weight:600;color:#12305c}
+.inv-lat{display:block;font-style:italic;font-size:10px;color:#555;margin-top:1px}
 @media print{
   body{background:#fff}
   #viewList,#viewDetail,#viewNew,#viewRecords,#viewWeather,#viewCalc,
@@ -393,7 +394,7 @@ h1 .qmark{width:23px;height:23px;min-width:23px;font-size:14px;margin-left:9px}
 
     <div class="card" style="margin-top:18px" data-fold="sicherung">
       <h2>Datensicherung</h2>
-      <div class="hint" style="margin-bottom:8px">App-Stand: <b>27.08.2026 — Homepage im Fußbereich, Druck auf einer Seite, Angebote, Bemerkung auf der Rechnung, eine Seite, Einstandskosten</b></div>
+      <div class="hint" style="margin-bottom:8px">App-Stand: <b>27.08.2026 — Lateinische Artnamen, Homepage im Fußbereich, Druck auf einer Seite, Angebote, Bemerkung auf der Rechnung, eine Seite, Einstandskosten</b></div>
       <div class="hint" style="margin-bottom:12px">Der Text unten ist immer der aktuelle Stand. Lade ihn als Datei herunter oder kopiere ihn — damit stellst du alles jederzeit wieder her, auch in einer neuen Version der App.</div>
       <textarea id="backupBox" rows="4"></textarea>
       <div class="btn-row" style="margin-top:10px">
@@ -4078,6 +4079,9 @@ function artKey(name){
   return 'regen';
 }
 function artName(k){const a=ARTEN.find(x=>x[0]===k);return a?a[1]:'Regenbogenforelle'}
+const LATEIN={'regenbogenforelle':'Oncorhynchus mykiss','bachforelle':'Salmo trutta fario','saibling':'Salvelinus fontinalis'};
+function latOf(t){const x=(t||'').toLowerCase();for(const k in LATEIN){if(x.indexOf(k)>=0)return LATEIN[k]}return ''}
+function textOhneLat(t){return (t||'').replace(/\s*\((Oncorhynchus|Salmo|Salvelinus)[^)]*\)/ig,'')}
 function eur(v,d){return fmt(v,d==null?2:d)+' €'}
 
 /* ---------- Länge und Gewicht ---------- */
@@ -4690,7 +4694,7 @@ function invoiceHTML(r,kind){
   const ang=kind==='ang';
   const rows=r.zeilen.map((z,i)=>`<tr>
       <td>${ang?(i+1):deDate(z.datum)}</td>
-      <td>${esc(z.text)}${z.groesse?' '+esc(z.groesse):''}${z.note?`<span class="inv-note-in">${esc(z.note)}</span>`:''}</td>
+      <td>${esc(textOhneLat(z.text))}${z.groesse?' '+esc(z.groesse):''}${latOf(z.text)?`<span class="inv-lat">${esc(latOf(z.text))}</span>`:''}${z.note?`<span class="inv-note-in">${esc(z.note)}</span>`:''}</td>
       <td>${besatz?fmt(z.menge,0):fmt(z.menge,2)}</td>
       <td>${eur2(z.preis)}</td>
       <td>${eur2(z.betrag)}</td>
