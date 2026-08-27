@@ -335,8 +335,10 @@ h1 .qmark{width:23px;height:23px;min-width:23px;font-size:14px;margin-left:9px}
   #viewList,#viewDetail,#viewNew,#viewRecords,#viewWeather,#viewCalc,
   #invBar,.toast,header.top{display:none !important}
   #viewInvoice{display:block !important}
-  #viewInvoice .wrap{padding:0;max-width:none}
-  #invSheet{padding:0;display:flex;flex-direction:column;aspect-ratio:194/272;min-height:0;overflow:hidden}
+  html,body{margin:0 !important;padding:0 !important;height:auto !important}
+  #viewInvoice{padding:0 !important;margin:0 !important;overflow:hidden}
+  #viewInvoice .wrap{padding:0 !important;margin:0 !important;max-width:none;overflow:hidden}
+  #invSheet{padding:0;margin:0;display:flex;flex-direction:column;aspect-ratio:194/262;min-height:0;overflow:hidden}
   .inv-banner{-webkit-print-color-adjust:exact;print-color-adjust:exact}
   @page{margin:8mm}
   .inv-banner{flex:0 0 auto}
