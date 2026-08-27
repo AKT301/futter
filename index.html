@@ -329,17 +329,19 @@ h1 .qmark{width:23px;height:23px;min-width:23px;font-size:14px;margin-left:9px}
 .inv-sums div.tot{font-weight:700;font-size:14px;border-top:2px solid #12305c;margin-top:5px;padding-top:5px}
 .inv-note{text-align:center;font-size:10.5px;line-height:1.7;margin-top:16px;color:#333}
 .inv-bank{text-align:center;font-size:10.5px;margin-top:8px;font-weight:600}
+.inv-web{text-align:center;font-size:10.5px;margin-top:6px;font-weight:600;color:#12305c}
 @media print{
   body{background:#fff}
   #viewList,#viewDetail,#viewNew,#viewRecords,#viewWeather,#viewCalc,
   #invBar,.toast,header.top{display:none !important}
   #viewInvoice{display:block !important}
   #viewInvoice .wrap{padding:0;max-width:none}
-  #invSheet{padding:0}
+  #invSheet{padding:0;display:flex;flex-direction:column;height:275mm;overflow:hidden}
   .inv-banner{-webkit-print-color-adjust:exact;print-color-adjust:exact}
   @page{margin:8mm}
-  .inv-paper{display:block;min-height:0;border:0;padding:10px 14px 0}
-  .inv-footer{margin-top:var(--fgap,45mm);padding-top:0;page-break-inside:avoid;break-inside:avoid}
+  .inv-banner{flex:0 0 auto}
+  .inv-paper{display:flex;flex-direction:column;flex:1 1 auto;min-height:0;border:0;padding:10px 14px 0}
+  .inv-footer{margin-top:auto !important;padding-top:0;page-break-inside:avoid;break-inside:avoid}
   .inv-lbl,.inv-tbl th,.inv-sums{-webkit-print-color-adjust:exact;print-color-adjust:exact}
 }
 </style>
@@ -389,7 +391,7 @@ h1 .qmark{width:23px;height:23px;min-width:23px;font-size:14px;margin-left:9px}
 
     <div class="card" style="margin-top:18px" data-fold="sicherung">
       <h2>Datensicherung</h2>
-      <div class="hint" style="margin-bottom:8px">App-Stand: <b>27.08.2026 — Angebote, Rechnung löschen, Bemerkung auf der Rechnung, eine Seite, Einstandskosten</b></div>
+      <div class="hint" style="margin-bottom:8px">App-Stand: <b>27.08.2026 — Homepage im Fußbereich, immer eine Seite, Angebote, Bemerkung auf der Rechnung, eine Seite, Einstandskosten</b></div>
       <div class="hint" style="margin-bottom:12px">Der Text unten ist immer der aktuelle Stand. Lade ihn als Datei herunter oder kopiere ihn — damit stellst du alles jederzeit wieder her, auch in einer neuen Version der App.</div>
       <textarea id="backupBox" rows="4"></textarea>
       <div class="btn-row" style="margin-top:10px">
@@ -1207,6 +1209,7 @@ h1 .qmark{width:23px;height:23px;min-width:23px;font-size:14px;margin-left:9px}
         <div class="field"><label>Telefon</label><input type="text" id="stTel" placeholder="09373/1234"></div>
       </div>
       <div class="field"><label>E-Mail</label><input type="text" id="stMail" placeholder="name@icloud.com"></div>
+      <div class="field"><label>Homepage</label><input type="text" id="stWeb" placeholder="hoelzlers-forellental.de"><div class="hint">Erscheint unten auf Rechnung und Angebot. Leer lassen, wenn sie nicht gedruckt werden soll.</div></div>
       <div class="field"><label>Bank</label><input type="text" id="stBank" placeholder="Sparkasse Aschaffenburg - Miltenberg"></div>
       <div class="row2">
         <div class="field"><label>IBAN</label><input type="text" id="stIban" placeholder="DE.."></div>
@@ -4441,7 +4444,7 @@ function initCalc(){
 const FINKEY='fischzucht-finanz';
 const FIN_DEF={
   stamm:{banner:"Hölzler's Forellental",banner2:'Direktvermarktung',
-    name:'',str:'',plz:'',ort:'',steuer:'',mobil:'',tel:'',mail:'',
+    name:'',str:'',plz:'',ort:'',steuer:'',mobil:'',tel:'',mail:'',web:'hoelzlers-forellental.de',
     bank:'',iban:'',bic:'',ust:7.8,ustText:'§ 24 UStG',
     kreis:String(new Date().getFullYear()),next:1,angNext:1},
   kunden:[], lief:[], priv:[], rech:[], ang:[]
@@ -4694,7 +4697,7 @@ function invoiceHTML(r,kind){
   const filler='<tr class="blank"><td></td><td></td><td></td><td></td><td></td></tr>'.repeat(blanks);
   const eff=Math.max(6,r.zeilen.length);
   const dense=eff>8?' dense':'';
-  const gap=Math.max(4,45-(eff-6)*10);
+  const gap=Math.max(4,45-(eff-6)*10); /* nur noch Bildschirm */
   return `
   <div class="inv-banner">
     ${st.logo?`<img class="logo" src="${st.logo}" alt="">`:''}
@@ -4747,6 +4750,7 @@ function invoiceHTML(r,kind){
           ? `<div class="inv-note">Bitte wenden Sie sich mit Fragen zu ${ang?'diesem Angebot':'dieser Rechnung'} an:<br>${c.join(' · ')}</div>`
           : '';})()}
       ${(st.bank||st.iban||st.bic)?`<div class="inv-bank">${esc(st.bank||'')}${st.iban?(st.bank?' · ':'')+'IBAN '+esc(st.iban):''}${st.bic?' · BIC '+esc(st.bic):''}</div>`:''}
+      ${st.web?`<div class="inv-web">${esc(st.web)}</div>`:''}
     </div>
   </div>`;
 }
@@ -4952,7 +4956,7 @@ function stammFill(){
   const st=fin.stamm, v=(id,val)=>document.getElementById(id).value=val==null?'':val;
   v('stBanner',st.banner); v('stBanner2',st.banner2); v('stName',st.name);
   v('stStr',st.str); v('stPlz',st.plz); v('stOrt',st.ort); v('stSteuer',st.steuer);
-  v('stMobil',st.mobil); v('stTel',st.tel); v('stMail',st.mail);
+  v('stMobil',st.mobil); v('stTel',st.tel); v('stMail',st.mail); v('stWeb',st.web);
   v('stBank',st.bank); v('stIban',st.iban); v('stBic',st.bic);
   v('stUst',st.ust); v('stUstText',st.ustText); v('stKreis',st.kreis); v('stNext',st.next);
   document.getElementById('stVorschau').textContent=rechNr();
@@ -5155,7 +5159,7 @@ function initFin(){
     Object.assign(fin.stamm,{
       banner:g('stBanner'),banner2:g('stBanner2'),name:g('stName'),str:g('stStr'),
       plz:g('stPlz'),ort:g('stOrt'),steuer:g('stSteuer'),mobil:g('stMobil'),
-      tel:g('stTel'),mail:g('stMail'),bank:g('stBank'),iban:g('stIban'),bic:g('stBic'),
+      tel:g('stTel'),mail:g('stMail'),web:g('stWeb'),bank:g('stBank'),iban:g('stIban'),bic:g('stBic'),
       ust:num(document.getElementById('stUst'),fin.stamm.ust),
       ustText:g('stUstText'),kreis:g('stKreis'),
       next:Math.max(1,parseInt(document.getElementById('stNext').value,10)||1)
