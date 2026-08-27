@@ -388,7 +388,7 @@ h1 .qmark{width:23px;height:23px;min-width:23px;font-size:14px;margin-left:9px}
 
     <div class="card" style="margin-top:18px" data-fold="sicherung">
       <h2>Datensicherung</h2>
-      <div class="hint" style="margin-bottom:8px">App-Stand: <b>27.08.2026 — Rechnung löschen, Bemerkung auf der Rechnung, eine Seite</b></div>
+      <div class="hint" style="margin-bottom:8px">App-Stand: <b>27.08.2026 — Rechnung löschen, Bemerkung auf der Rechnung, eine Seite, Einstandskosten</b></div>
       <div class="hint" style="margin-bottom:12px">Der Text unten ist immer der aktuelle Stand. Lade ihn als Datei herunter oder kopiere ihn — damit stellst du alles jederzeit wieder her, auch in einer neuen Version der App.</div>
       <textarea id="backupBox" rows="4"></textarea>
       <div class="btn-row" style="margin-top:10px">
@@ -648,6 +648,15 @@ h1 .qmark{width:23px;height:23px;min-width:23px;font-size:14px;margin-left:9px}
       </div>
       <button class="btn" id="saveStockBtn">Bestand übernehmen</button>
       <div class="hint" id="stockHint" style="margin-top:8px"></div>
+    </div>
+
+    <div class="card" data-fold="drinsteckt">
+      <h2>Was drinsteckt</h2>
+      <div class="row2">
+        <div class="field"><label>Startgewicht (g)</label><input type="number" id="ekStartG" step="0.05" min="0.01" inputmode="decimal" placeholder="0,15"></div>
+        <div class="field"><label>Zukauf gesamt (€)</label><input type="number" id="ekZukauf" step="1" min="0" inputmode="decimal" placeholder="0"></div>
+      </div>
+      <div id="ekOut"></div>
     </div>
 
     <div class="card" data-fold="verlauf">
@@ -1686,6 +1695,8 @@ function renderDetail(){
   renderOutForm();
   renderOutLog(p);
   renderHistory(p);
+  ekFill(p);
+  renderEinstand(p);
 }
 
 /* ---------- Simulation ---------- */
@@ -1777,9 +1788,9 @@ function renderGrainPlan(pond,targetG){
   if(zuKlein) kanal='besatz';
   const lebendKg=stkEnde*targetG/1000;
 
+  const Lz=lgLength(targetG);
   let erloes=0, erlZeile='';
   if(kanal==='besatz'){
-    const Lz=lgLength(targetG);
     const ctcm=(calc.besatz&&calc.besatz[aKey])||6;
     erloes=stkEnde*Lz*ctcm/100;
     erlZeile=`<div class="calcrow"><span>${stkEnde.toLocaleString('de-DE')} Stück × ${fmt(targetG,targetG<10?1:0)} g<br>
@@ -1804,21 +1815,45 @@ function renderGrainPlan(pond,targetG){
       </select></span></div>`;
   const rest=erloes-kostGes;
 
+  // Was bis heute schon drinsteckt
+  const bis=(()=>{
+    try{
+      const geb=kostenGebucht(pond);
+      const dav=kostenDavor(pond,pond.startG!=null?pond.startG:0.15);
+      const f=geb.eur+(dav?dav.eur:0);
+      return f+f*sonstP/100+(pond.zukauf>0?pond.zukauf:0);
+    }catch(e){return 0}
+  })();
+  const gesamtAlles=bis+kostGes;
+  const minJe=gesamtAlles/Math.max(1,stkEnde);
+  const minKg=lebendKg>0?gesamtAlles/lebendKg:0;
+  const minCt=(kanal==='besatz'&&Lz>0)?minJe*100/Lz:0;
+
   const money=`<div class="moneybox">
     <h4>Was es kostet und was es bringt</h4>
-    <div class="calcrow"><span>Futter gesamt · ${fmt(totalKg,1)} kg</span><span>${eur(futterKost)}</span></div>
+    <div class="calcrow"><span>Steckt heute schon drin</span><span>${eur(bis)}</span></div>
+    <div class="calcrow"><span>Futter bis zum Ziel · ${fmt(totalKg,1)} kg</span><span>${eur(futterKost)}</span></div>
     <div class="calcrow"><span>Sonstiges · ${fmt(sonstP,0)} % der Futterkosten</span><span>${eur(sonstK)}</span></div>
     <div class="calcrow sum"><span>Kosten bis zum Ziel</span><span>${eur(kostGes)}</span></div>
+    <div class="calcrow sum"><span>Alles zusammen</span><span>${eur(gesamtAlles)}</span></div>
     ${kanalZeile}
     ${erlZeile}
     <div class="calcrow sum"><span>${rest>=0?'Bleibt übrig':'Fehlbetrag'}</span><span>${rest>=0?'':'−'}${eur(Math.abs(rest))}</span></div>
+    <div class="moneybox" style="margin-top:10px">
+      <h4>Mindestpreis bei ${fmt(targetG,0)} g</h4>
+      <div class="pgrid">
+        <div><span>Je Fisch</span>${eur(minJe)}</div>
+        <div><span>Je kg lebend</span>${eur(minKg)}</div>
+        ${minCt>0?`<div><span>Je cm</span>${fmt(minCt,1)} ct</div>`:''}
+      </div>
+      <div class="hint" style="margin-top:8px">Darunter zahlst du drauf. Enthält alles seit dem Start plus das Futter bis zum Ziel, dazu ${fmt(sonstP,0)} % Sonstiges — den Prozentsatz stellst du in der Kalkulation ein.</div>
+    </div>
     <div class="mfoot">
-      Je Fisch: <b>${eur(kostGes/Math.max(1,stkEnde))}</b> Kosten,
+      Bis zum Ziel je Fisch: <b>${eur(kostGes/Math.max(1,stkEnde))}</b> Kosten,
       <b>${eur(erloes/Math.max(1,stkEnde))}</b> Erlös,
       <b>${eur(rest/Math.max(1,stkEnde))}</b> übrig.<br>
       Futter je kg Zuwachs: <b>${eur(futterKost/Math.max(0.001,lebendKg-stkJetzt*pond.avgG/1000))}</b>.
-      Der Einsatz, den die Fische heute schon wert sind, ist hier noch nicht abgezogen —
-      den Vergleich rechnet der Abschnitt „Besatz oder Speisefisch“ in der Kalkulation.
+      Die Zeile „Bleibt übrig“ rechnet nur ab heute — was schon drinsteckt, steht oben und im Mindestpreis.
     </div>
   </div>`;
 
@@ -2251,6 +2286,101 @@ function renderChart(p,sim){
       ${proj.length>1?' · <b style="color:#7C93A3">- - Prognose</b> bis Zielgewicht':''}
       · ${fmt(ymin,1)}–${fmt(ymax,1)} kg
     </div>`;
+}
+
+function sonstPct(){return (calc.sonstP==null?45:calc.sonstP)}
+
+/* Kosten des gebuchten Futters — je Eintrag mit dem Preis der damaligen Korngröße */
+function kostenGebucht(pond){
+  let kg=0, eur=0;
+  feedLog(pond).forEach(h=>{
+    if(!(h.feed>0))return;
+    kg+=h.feed;
+    if(h.gparts&&h.gparts.length){
+      h.gparts.forEach(g=>{eur+=g.kg*gPreis(g.key)});
+    }else{
+      eur+=h.feed*gPreis(h.gkey||grainKeyAt(pond,h.after));
+    }
+  });
+  return {kg,eur};
+}
+/* Korngrößen-Schlüssel für ein Durchschnittsgewicht */
+function grainKeyAt(pond,bioAfter){
+  const cnt=stockCount(pond);
+  const avg=(cnt>0&&bioAfter>0)?bioAfter*1000/cnt:pond.avgG;
+  const mastKey=(PRODUCTS[pond.feed]&&PRODUCTS[pond.feed].type==='Mastfutter')?pond.feed:'gold';
+  const prod=PRODUCTS[chainFeedFor(avg,mastKey)];
+  const c=pickClass(prod,avg);
+  return prod.name+'|'+c.mm;
+}
+/* Schätzung für die Zeit vor der App: von startG bis zum Stand beim ersten Eintrag */
+function kostenDavor(pond,startG){
+  const log=feedLog(pond);
+  const cnt=stockCount(pond); if(!(cnt>0))return null;
+  // Gewicht, ab dem die App mitgeschrieben hat
+  let abG=pond.avgG;
+  if(log.length){
+    const erst=log[0];
+    const bioVor=(erst.after||0)-(erst.gain||0);
+    if(bioVor>0)abG=bioVor*1000/cnt;
+  }
+  if(!(abG>startG))return {kg:0,eur:0,abG,tage:0};
+  const fake={...pond, avgG:startG, totalKg:cnt*startG/1000};
+  let s=null;
+  try{s=simulate(fake,abG,{chain:true,maxDays:2000,factor:1})}catch(e){}
+  if(!s||!s.reached)return null;
+  let eur=0;
+  s.grains.forEach(g=>{eur+=g.kg*gPreis(g.key)});
+  return {kg:s.feedTotal,eur,abG,tage:s.days};
+}
+function renderEinstand(p){
+  const box=document.getElementById('ekOut'); if(!box)return;
+  const startG=Math.max(0.01,num(document.getElementById('ekStartG'),p.startG||0.15));
+  const zukauf=Math.max(0,num(document.getElementById('ekZukauf'),p.zukauf||0));
+  const cnt=stockCount(p);
+  if(!(cnt>0)){box.innerHTML='<div class="hint">Bestand eintragen, dann rechnet die App hier.</div>';return}
+  const geb=kostenGebucht(p);
+  const dav=kostenDavor(p,startG);
+  const futterEur=geb.eur+(dav?dav.eur:0);
+  const futterKg=geb.kg+(dav?dav.kg:0);
+  const sp=sonstPct();
+  const sonst=futterEur*sp/100;
+  const ges=futterEur+sonst+zukauf;
+  const jeFisch=ges/cnt;
+  const jeKg=p.totalKg>0?ges/p.totalKg:0;
+  const L=p.avgG>0?lgLength(p.avgG):0;
+  const aKey=(typeof artKey==='function')?artKey(speciesOf(p)):'regen';
+  const listCt=(calc.besatz&&calc.besatz[aKey])||6;
+  const ctcm=L>0?jeFisch*100/L:0;
+  box.innerHTML=`
+    <div class="calcrow"><span>Gebuchtes Futter · ${fmt(geb.kg,2)} kg</span><span>${eur(geb.eur)}</span></div>
+    ${dav?`<div class="calcrow"><span>Geschätzt davor · ${fmt(dav.kg,2)} kg
+      <span style="color:var(--ink-soft);font-size:11.5px">${fmt(startG,2)} g bis ${fmt(dav.abG,1)} g · ${dav.tage} Tage</span></span><span>${eur(dav.eur)}</span></div>`
+      :'<div class="hint">Die Zeit vor der App lässt sich hier nicht schätzen — Startgewicht prüfen.</div>'}
+    ${zukauf>0?`<div class="calcrow"><span>Zukauf Brut oder Setzlinge</span><span>${eur(zukauf)}</span></div>`:''}
+    <div class="calcrow"><span>Sonstiges · ${fmt(sp,0)} % der Futterkosten</span><span>${eur(sonst)}</span></div>
+    <div class="calcrow sum"><span>Steckt drin</span><span>${eur(ges)}</span></div>
+    <div class="pgrid" style="margin-top:10px">
+      <div><span>Je Fisch</span>${eur(jeFisch)}</div>
+      <div><span>Je kg</span>${eur(jeKg)}</div>
+      <div><span>Mindestens je cm</span>${fmt(ctcm,1)} ct</div>
+    </div>
+    <div class="hint" style="margin-top:9px">Das ist die Untergrenze — darunter zahlst du drauf. ${L>0?`Bei ${fmt(L,1)} cm sind das ${fmt(ctcm,1)} ct je cm; deine Liste steht bei ${fmt(listCt,0)} ct.`:''}</div>
+    <div class="hint">Die Schätzung für die Zeit vor der App ist rückwärts über Tabelle und Futterquotient gerechnet, nicht aus echten Aufzeichnungen. Verluste sind darin nicht enthalten — tatsächlich hast du für die verendeten Fische auch gefüttert, echte Kosten liegen also etwas höher.</div>`;
+}
+
+function ekFill(p){
+  const a=document.getElementById('ekStartG'), b=document.getElementById('ekZukauf');
+  if(!a||!b)return;
+  a.value=(p.startG!=null?p.startG:0.15);
+  b.value=(p.zukauf>0?p.zukauf:'');
+}
+function ekSave(){
+  const p=ponds.find(x=>x.id===currentId); if(!p)return;
+  p.startG=Math.max(0.01,num(document.getElementById('ekStartG'),0.15));
+  p.zukauf=Math.max(0,num(document.getElementById('ekZukauf'),0));
+  save();
+  renderEinstand(p);
 }
 
 function renderHistory(p){
@@ -2935,6 +3065,11 @@ document.getElementById('sackKg').addEventListener('input',e=>{
   if(v>0){calc.sack=v; calcSave();}
   const p=ponds.find(x=>x.id===currentId);
   if(p) renderGrainPlan(p,parseFloat(document.getElementById('targetG').value));
+});
+
+['ekStartG','ekZukauf'].forEach(id=>{
+  const el=document.getElementById(id);
+  if(el)el.addEventListener('input',ekSave);
 });
 
 document.getElementById('targetG').addEventListener('input',async e=>{
@@ -4827,6 +4962,12 @@ bestand:`<p><b>Wofür:</b> Hier steht, was gerade im Teich ist — Gesamtgewicht
 
 temp:`<p><b>Warum das wichtig ist:</b> Forellen fressen je nach Wassertemperatur ganz unterschiedlich viel. Bei 6 °C brauchen sie etwa halb so viel wie bei 14 °C.</p>
 <p>Trag die Temperatur ein, die du gemessen hast. Die App rechnet die Futtermenge sofort um.</p>`,
+
+drinsteckt:`<p><b>Wofür:</b> Was die Fische in diesem Teich bis heute gekostet haben — als Untergrenze für deinen Preis.</p>
+<p>Die App addiert das gebuchte Futter zu den Preisen der jeweiligen Korngröße. Für die Zeit davor schätzt sie: vom <b>Startgewicht</b> bis zu dem Gewicht, ab dem du gebucht hast, rückwärts über Tabelle und Futterquotient. Bei eigenen Eiern liegt das Startgewicht nach dem Dottersack bei etwa 0,15 g.</p>
+<p><b>Zukauf</b> ist für gekaufte Brut oder Setzlinge. Züchtest du selbst, bleibt das Feld leer.</p>
+<p>Der Aufschlag <b>Sonstiges</b> kommt aus der Kalkulation — dort stellst du ein, wie viel Prozent der Futterkosten für Sprit, Strom und Verschleiß draufkommen.</p>
+<p><b>Was es nicht kann:</b> Die Schätzung kennt deine echten Fütterungen von damals nicht, und die Fische, die unterwegs verendet sind, haben auch gefressen. Rechne also mit etwas mehr, nicht mit weniger.</p>`,
 
 futterart:`<p><b>Wofür:</b> Jede Futtersorte hat eigene Tabellenwerte und eine eigene Korngröße je Fischgröße.</p>
 <p>Die App wählt die Korngröße automatisch nach dem Durchschnittsgewicht. Du stellst nur die Sorte ein.</p>
