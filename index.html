@@ -315,6 +315,11 @@ h1 .qmark{width:23px;height:23px;min-width:23px;font-size:14px;margin-left:9px}
 .inv-tbl td:first-child,.inv-tbl td:nth-child(2){text-align:left}
 .inv-tbl tr.blank td{height:17px;border-bottom:1px dotted #b9c3d1}
 .inv-foot{display:flex;gap:12px;margin-top:14px;flex-wrap:wrap}
+.inv-note-in{display:block;font-size:9.5px;color:#5a6474;margin-top:1px}
+.inv-paper.dense .inv-tbl{font-size:10px;margin-top:12px}
+.inv-paper.dense .inv-tbl td{padding:3px 4px}
+.inv-paper.dense .inv-tbl th{padding:4px 4px}
+.inv-paper.dense .inv-note-in{font-size:9px}
 .inv-thanks{flex:1 1 40%;font-style:italic;font-size:12.5px;padding-top:6px;min-width:120px}
 .inv-sums{flex:1 1 52%;min-width:200px;background:#dce7f4;padding:10px 12px;font-size:12px}
 .inv-sums div{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:3px 0}
@@ -333,7 +338,7 @@ h1 .qmark{width:23px;height:23px;min-width:23px;font-size:14px;margin-left:9px}
   .inv-banner{-webkit-print-color-adjust:exact;print-color-adjust:exact}
   @page{margin:8mm}
   .inv-paper{display:block;min-height:0;border:0;padding:10px 14px 0}
-  .inv-footer{margin-top:45mm;padding-top:0;page-break-inside:avoid;break-inside:avoid}
+  .inv-footer{margin-top:var(--fgap,45mm);padding-top:0;page-break-inside:avoid;break-inside:avoid}
   .inv-lbl,.inv-tbl th,.inv-sums{-webkit-print-color-adjust:exact;print-color-adjust:exact}
 }
 </style>
@@ -4511,6 +4516,9 @@ function invoiceHTML(r){
     </tr>`).join('');
   const blanks=Math.max(0,6-r.zeilen.length);
   const filler='<tr class="blank"><td></td><td></td><td></td><td></td><td></td></tr>'.repeat(blanks);
+  const eff=Math.max(6,r.zeilen.length);
+  const dense=eff>8?' dense':'';
+  const gap=Math.max(4,45-(eff-6)*10);
   return `
   <div class="inv-banner">
     ${st.logo?`<img class="logo" src="${st.logo}" alt="">`:''}
@@ -4519,7 +4527,7 @@ function invoiceHTML(r){
       ${st.banner2?`<div class="n2">${esc(st.banner2)}</div>`:''}
     </div>
   </div>
-  <div class="inv-paper">
+  <div class="inv-paper${dense}">
     <div class="inv-title">RECHNUNG</div>
     <div class="inv-head">
       <div>
@@ -4552,7 +4560,7 @@ function invoiceHTML(r){
         <div class="tot"><span>Rechnungsbetrag</span><span>${eur2(r.brutto)}</span></div>
       </div>
     </div>
-    <div class="inv-footer">
+    <div class="inv-footer" style="--fgap:${gap}mm">
       ${(()=>{const c=[];
         if(st.mobil) c.push('Mobil '+esc(st.mobil));
         if(st.tel) c.push('Telefon '+esc(st.tel));
