@@ -4469,7 +4469,7 @@ function makeRechnung(kid){
     kunde:{name:k.name,zusatz:k.zusatz,str:k.str,plz:k.plz,ort:k.ort,nr:k.nr,ziel:k.ziel},
     stamm:JSON.parse(JSON.stringify(fin.stamm)),
     zeilen:ls.map(l=>({datum:l.datum,text:l.text,menge:l.menge,preis:l.preis,
-      betrag:l.betrag,besatz:l.besatz,groesse:l.groesse})),
+      betrag:l.betrag,besatz:l.besatz,groesse:l.groesse,note:l.note||''})),
     netto:Math.round(netto*100)/100, satz, steuer,
     brutto:Math.round((netto+steuer)*100)/100,
     bezahlt:null
@@ -4504,7 +4504,7 @@ function invoiceHTML(r){
   const besatz=r.art==='besatz';
   const rows=r.zeilen.map(z=>`<tr>
       <td>${deDate(z.datum)}</td>
-      <td>${esc(z.text)}${z.groesse?' '+esc(z.groesse):''}</td>
+      <td>${esc(z.text)}${z.groesse?' '+esc(z.groesse):''}${z.note?`<span class="inv-note-in">${esc(z.note)}</span>`:''}</td>
       <td>${besatz?fmt(z.menge,0):fmt(z.menge,2)}</td>
       <td>${eur2(z.preis)}</td>
       <td>${eur2(z.betrag)}</td>
