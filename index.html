@@ -4435,7 +4435,7 @@ function renderRechBuch(){
       <span class="who">${deDate(r.datum)} · ${r.bezahlt?'bezahlt am '+deDate(r.bezahlt):'offen'}</span>
     </span>
     <span style="text-align:right"><b>${eur2(r.brutto)}</b>
-      <span class="who"><a href="#" data-invopen="${r.id}">ansehen</a></span>
+      <span class="who"><a href="#" data-invopen="${r.id}">ansehen</a> · <a href="#" data-invdel="${r.id}" style="color:#b4531a">löschen</a></span>
     </span>
   </div>`).join('');
 }
@@ -4481,6 +4481,21 @@ function makeRechnung(kid){
   renderFinAll();
   openInvoice(r.id);
   toast('Rechnung '+r.nr+' erzeugt.');
+}
+function delRechnung(id){
+  const r=fin.rech.find(x=>x.id===id); if(!r){toast('Rechnung nicht gefunden.');return}
+  const ls=fin.lief.filter(l=>l.rechId===id);
+  const txt='Rechnung '+r.nr+' ('+r.kunde.name+', '+eur2(r.brutto)+') löschen?'
+    + (ls.length?'\n\n'+ls.length+' zugehörige Lieferung(en) werden mitgelöscht.':'')
+    + '\n\nDas lässt sich nicht rückgängig machen.';
+  if(!confirm(txt))return;
+  fin.lief=fin.lief.filter(l=>l.rechId!==id);
+  fin.rech=fin.rech.filter(x=>x.id!==id);
+  const next=parseInt(fin.stamm.next,10)||1;
+  const letzte=String(fin.stamm.kreis||'')+String(next-1).padStart(3,'0');
+  if(r.nr===letzte&&next>1)fin.stamm.next=next-1;
+  finSave(); renderFinAll();
+  toast('Rechnung '+r.nr+' gelöscht.');
 }
 
 /* ---------- Rechnungsblatt ---------- */
@@ -4659,8 +4674,9 @@ function initFin(){
     }
   });
   document.getElementById('finRechOut').addEventListener('click',e=>{
-    const a=e.target.closest('[data-invopen]');
+    const a=e.target.closest('[data-invopen]'), d=e.target.closest('[data-invdel]');
     if(a){e.preventDefault();openInvoice(a.dataset.invopen)}
+    if(d){e.preventDefault();delRechnung(d.dataset.invdel)}
   });
 
   // Lieferung
@@ -4889,7 +4905,8 @@ finPriv:`<p><b>Wofür:</b> Kunden am Teich, ohne Rechnung.</p>
 <p><b>Warum getrennt:</b> Damit deine Preisliste sauber bleibt. Für den Soll-Ist-Vergleich zählt der berechnete Preis, nicht das Trinkgeld.</p>`,
 
 finRech:`<p>Alle erzeugten Rechnungen. Offene stehen oben in Orange.</p>
-<p>Weil du keine Bilanz machst, sondern Einnahmen und Ausgaben gegenüberstellst, zählt für das Finanzamt der <b>Tag der Zahlung</b> — nicht das Rechnungsdatum. Deswegen buchst du hier ab, wenn das Geld da ist.</p>`,
+<p>Weil du keine Bilanz machst, sondern Einnahmen und Ausgaben gegenüberstellst, zählt für das Finanzamt der <b>Tag der Zahlung</b> — nicht das Rechnungsdatum. Deswegen buchst du hier ab, wenn das Geld da ist.</p>
+<p><b>Löschen</b> nimmt die zugehörigen Lieferungen mit. War es die zuletzt vergebene Nummer, wird sie wieder frei — sonst entsteht eine Lücke in der Nummernfolge, und die musst du erklären können. Für Probeläufe in Ordnung, bei echten Rechnungen lieber stehen lassen.</p>`,
 
 finKunden:`<p>Jeder Kunde einmal anlegen: Anschrift, Kunden-ID, Preis und ob quartalsweise oder je Lieferung abgerechnet wird.</p>
 <p>Danach reicht bei jeder Lieferung Datum und Menge — den Rest weiß die App.</p>`,
