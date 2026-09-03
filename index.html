@@ -1987,10 +1987,10 @@ function renderPrognosis(p){
   const marks=cands.filter(m=>m>p.avgG&&m<t).slice(-5);
   marks.push(t);
 
-  const s=simulate(p,t,{marks});
+  const s=simulate(p,t,{marks,chain:true});
   if(!s){ out.innerHTML='<div class="hint">Bestandsdaten unvollständig.</div>'; return null; }
   if(!s.reached){
-    out.innerHTML='<div class="hint">Bei ' + fmt(p.temp,1) + ' °C und Futterquotient ' + fmt(p.fcr,2) + ' wird das Ziel in über drei Jahren nicht erreicht. Werte prüfen.</div>';
+    out.innerHTML='<div class="hint">Bei ' + fmt(p.temp,1) + ' °C wird das Ziel in über drei Jahren nicht erreicht. Werte prüfen.</div>';
     return null;
   }
 
@@ -2015,7 +2015,7 @@ function renderPrognosis(p){
       <thead><tr><th>Ziel</th><th>Tage</th><th>Datum</th><th>Futter kg</th><th>Bestand</th></tr></thead>
       <tbody>${rows}</tbody>
     </table>
-    <div class="hint" style="margin-top:10px">Futter- und Bestandswerte sind kumuliert ab heute, bei gleichbleibend ${fmt(p.temp,1)} °C und Futterquotient ${fmt(p.fcr,2)}.</div>`;
+    <div class="hint" style="margin-top:10px">Futter- und Bestandswerte sind kumuliert ab heute, bei gleichbleibend ${fmt(p.temp,1)} °C. Gerechnet mit Futterwechsel wie in der Praxis (Brutfutter, Futura 2 mm, dann Mastfutter) und dem Futterquotienten der jeweiligen Sorte — dieselbe Rechnung wie in der Einkaufsliste.</div>`;
   return s;
 }
 
