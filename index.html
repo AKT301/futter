@@ -54,7 +54,7 @@ input[type=range]{width:100%;accent-color:var(--teal);margin-top:6px}
 /* pond list */
 .pond{background:var(--card);border:1px solid var(--line);border-left:5px solid var(--teal);border-radius:var(--r);padding:15px 16px;margin-bottom:12px;cursor:pointer;transition:transform .12s,box-shadow .12s;position:relative}
 .pond:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(15,74,80,.09)}
-.pond.gold{border-left-color:var(--gold)} .pond.silver{border-left-color:var(--silver)}
+.pond.gold{border-left-color:var(--gold)} .pond.silver{border-left-color:var(--silver)} .pond.repex{border-left-color:#8A4B5C}
 .pond.futura2{border-left-color:var(--teal)} .pond.brut{border-left-color:var(--teal-deep)}
 .pond .pname{font-family:'Barlow Condensed',sans-serif;font-size:21px;font-weight:600;color:var(--teal-deep);line-height:1.1}
 .pond .pmeta{font-size:12.5px;color:var(--ink-soft);margin-top:3px}
@@ -69,6 +69,7 @@ input[type=range]{width:100%;accent-color:var(--teal);margin-top:6px}
 .pill{border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;cursor:pointer;font-size:13px;line-height:1.3;background:#FBFDFD;transition:all .15s}
 .pill b{display:block;font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:600}
 .pill.gold.active{border-color:var(--gold);background:#FBF3E1}
+.pill.repex.active{border-color:#8A4B5C;background:#F6E9EC}
 .pill.silver.active{border-color:var(--silver);background:#EEF2F5}
 .pill.futura2.active{border-color:var(--teal);background:#E4EFEE}
 .pill.brut.active{border-color:var(--teal-deep);background:#E0EBEA}
@@ -654,7 +655,7 @@ h1 .qmark{width:23px;height:23px;min-width:23px;font-size:14px;margin-left:9px}
       </div>
       <div class="field">
         <label>Anlage / Standort</label>
-        <input type="text" id="editSite" list="siteList" placeholder="z.B. Brutanlage">
+        <input type="text" id="editSite" list="siteList" placeholder="Ottorfszell oder Zittenfelden">
       </div>
       <div class="row2">
         <div class="field">
@@ -769,6 +770,33 @@ h1 .qmark{width:23px;height:23px;min-width:23px;font-size:14px;margin-left:9px}
   </header>
   <div class="wrap">
 
+    <div class="card" data-fold="lagLief">
+      <h2>Lieferung eintragen</h2>
+      <div id="lagSeed"></div>
+      <div class="hint" style="margin-bottom:12px">Jede Futterlieferung kommt hier rein, egal für welche Anlage. Sie landet im Lager zu Hause.</div>
+      <div class="field"><label>Lieferdatum</label><input type="date" id="liefDate"></div>
+      <div id="liefRows"></div>
+      <button class="btn ghost" id="liefMore" style="margin:0 0 14px">+ weitere Sorte</button>
+      <div class="row2">
+        <div class="field"><label>Betrag brutto (€)</label><input type="number" id="liefEur" step="0.01" min="0" inputmode="decimal" placeholder="0,00"></div>
+        <div class="field"><label>Lieferant</label><input type="text" id="liefVon" placeholder="z.B. Sauer"></div>
+      </div>
+      <button class="btn" id="liefBtn">Lieferung buchen</button>
+      <div id="liefList" style="margin-top:14px"></div>
+    </div>
+
+    <div class="card" data-fold="lagTeich">
+      <h2>Sack an den Teich</h2>
+      <div class="hint" style="margin-bottom:12px">Wenn du einen Sack von zu Hause mitnimmst. Ab dann ziehen die Fütterungen dieser Anlage vom Sack am Teich ab.</div>
+      <div class="field"><label>Korngröße</label><select id="tlKey"></select></div>
+      <div class="row2">
+        <div class="field"><label>Anlage</label><select id="tlSite"></select></div>
+        <div class="field"><label>Säcke</label><input type="number" id="tlN" step="1" min="1" inputmode="numeric" value="1"></div>
+      </div>
+      <button class="btn" id="tlBtn">Ausbuchen</button>
+      <div id="tlOut" style="margin-top:14px"></div>
+    </div>
+
     <div class="card" data-fold="lagBestand">
       <h2>Bestand und Reichweite</h2>
       <div class="hint" style="margin-bottom:12px">Was im Lager liegt, wie lange es beim heutigen Verbrauch reicht und wann du bestellen musst.</div>
@@ -786,7 +814,7 @@ h1 .qmark{width:23px;height:23px;min-width:23px;font-size:14px;margin-left:9px}
 
     <div class="card" data-fold="lagAufnahme">
       <h2>Bestandsaufnahme</h2>
-      <div class="hint" style="margin-bottom:12px">Einmal durchs Lager gehen und eintragen, was wirklich dasteht.</div>
+      <div class="hint" style="margin-bottom:12px">Einmal durchs Lager zu Hause gehen und eintragen, was wirklich dasteht. Die Säcke am Teich korrigierst du oben bei „Sack an den Teich“.</div>
       <div class="field"><label>Korngröße</label><select id="lagKey"></select></div>
       <div class="row2">
         <div class="field"><label>Ganze Säcke</label><input type="number" id="lagSaecke" step="0.5" min="0" inputmode="decimal" placeholder="0"></div>
@@ -1344,6 +1372,15 @@ const PRODUCTS={
   futura2:{name:"Aller Futura 2mm",type:"Aufzuchtfutter",cls:"futura2",defFcr:0.8,classes:[
     {min:15,max:25,mm:"2 mm",vals:[0.56,0.75,0.94,1.13,1.41,1.69,1.81,1.88,1.77]},
     {min:25,max:40,mm:"2 mm",vals:[0.51,0.68,0.85,1.02,1.27,1.52,1.62,1.69,1.59]}]},
+  /* Laichfischfutter für die Elternfische, Werte laut Datenblatt Aller Aqua (Stand 07/08/2026),
+     kg pro Tag je 100 kg Fisch bei 2–18 °C. Oberhalb 16 °C fällt die Menge wieder ab. */
+  repex:{name:"Aller REP EX",type:"Laichfischfutter",cls:"repex",defFcr:1.1,classes:[
+    {min:400,max:600,mm:"6 mm",vals:[0.20,0.27,0.38,0.48,0.68,0.84,0.90,0.93,0.89]},
+    {min:600,max:800,mm:"6 mm",vals:[0.17,0.24,0.34,0.42,0.60,0.74,0.79,0.82,0.78]},
+    {min:800,max:1000,mm:"6 mm",vals:[0.15,0.21,0.30,0.37,0.53,0.65,0.69,0.72,0.69]},
+    /* Laut Datenblatt 8 mm ab 1000 g, Alexander füttert aber durchgehend 6 mm.
+       Die Menge kommt trotzdem aus der Zeile >1000 g. */
+    {min:1000,max:999999,mm:"6 mm",vals:[0.13,0.18,0.26,0.32,0.46,0.57,0.61,0.64,0.60]}]},
   brut:{name:"Futura EX GR",type:"Brutfutter",cls:"brut",defFcr:0.6,classes:[
     {min:0.5,max:2.0,mm:"0.5–1.0 mm",vals:[0.99,1.32,1.64,1.97,2.47,2.96,3.16,3.29,3.09]},
     {min:2.0,max:7.0,mm:"0.9–1.6 mm",vals:[0.84,1.12,1.40,1.68,2.10,2.52,2.68,2.80,2.63]},
@@ -1384,7 +1421,7 @@ const WERK_SUP={
   'Aller Gold|6 mm':1.91,
   'Aller Gold|8 mm':1.91
 };
-const NAME2KEY={'Futura EX GR':'brut','Aller Futura 2mm':'futura2','Aller Gold':'gold','Aller Silver':'silver'};
+const NAME2KEY={'Futura EX GR':'brut','Aller Futura 2mm':'futura2','Aller Gold':'gold','Aller Silver':'silver','Aller REP EX':'repex'};
 function prodOf(key){return NAME2KEY[String(key).split('|')[0]]||'gold'}
 function werkPreis(key){
   if(calc.goldSupport && (key in WERK_SUP)) return WERK_SUP[key];
@@ -1604,7 +1641,7 @@ const NOSITE='Ohne Zuordnung';
 function siteOf(p){return (p.site&&p.site.trim())?p.site.trim():NOSITE}
 function allSites(){
   const s=[...new Set(ponds.map(siteOf).filter(x=>x!==NOSITE))];
-  ['Brutanlage','Mastanlage','Teichanlage'].forEach(d=>{if(!s.includes(d))s.push(d)});
+  ['Ottorfszell','Zittenfelden'].forEach(d=>{if(!s.includes(d))s.push(d)});
   return s;
 }
 function refreshSiteList(){
@@ -2012,7 +2049,7 @@ function simulate(pond,targetG,opts){
   let bio=pond.totalKg, avg=pond.avgG, feedTotal=0, days=0;
   const track=[{d:0,avg,bio}];
   const hits=[]; let mi=0;
-  const chain=!!opts.chain;
+  const chain=!!opts.chain&&!(PRODUCTS[pond.feed]&&PRODUCTS[pond.feed].type==='Laichfischfutter');
   const mastKey=(PRODUCTS[pond.feed]&&PRODUCTS[pond.feed].type==='Mastfutter')?pond.feed:'gold';
   const grains=[]; let gi=null;
   const p=PRODUCTS[feedKey];
@@ -3098,8 +3135,10 @@ function renderRecords(){
   document.getElementById('recIn').innerHTML=tbl(H_IN,recInRows().map(r=>r.slice(2)),
     'Keine Zugänge im Zeitraum.');
 
-  // Betriebstagebuch: Futterverbrauch je Anlage
-  const sites=[...new Set(ponds.map(siteOf))];
+  // Betriebstagebuch: Futtermittelbezug (Säcke an die Anlage) und Verbrauch je Anlage
+  try{tlInit()}catch(e){}
+  const bezLog=((typeof calc!=='undefined'&&calc&&calc.lagerLog)||[]).filter(e=>e.art==='teich'&&e.site);
+  const sites=[...new Set([...ponds.map(siteOf),...bezLog.map(e=>e.site)])];
   document.getElementById('recDiary').innerHTML=sites.map(s=>{
     const grp=ponds.filter(p=>siteOf(p)===s);
     const fed={};
@@ -3110,10 +3149,17 @@ function renderRecords(){
     }));
     const m=siteMeta(s);
     const rows=Object.entries(fed).map(([k,v])=>[k,fmt(v,2)+' kg']);
+    const bez=bezLog.filter(e=>e.site===s&&inRange(e.date)).sort((a,b)=>a.date<b.date?-1:1)
+      .map(e=>[deDate(e.date),`${String(e.key).split('|')[0]} ${String(e.key).split('|')[1]||''}`,fmt(e.kg,1)+' kg']);
+    const bezSum=bezLog.filter(e=>e.site===s&&inRange(e.date)).reduce((a,e)=>a+e.kg,0);
     return `<div class="arrowbox"><h3>${s}</h3>
       <div class="hint" style="margin-bottom:10px">Frischwasserzulauf: ${m.zulauf?m.zulauf+' l/s':'— noch nicht eingetragen'}</div>
+      <div class="hint" style="margin:0 0 6px"><b>Futtermittelbezug</b> (Säcke, die an diese Anlage gegangen sind)</div>
+      ${tbl(['Datum','Futterart','Menge'],bez,'Kein Sack an diese Anlage gebucht.')}
+      ${bezSum>0?`<div class="hint" style="margin:6px 0 12px">Summe im Zeitraum: <b>${fmt(bezSum,1)} kg</b></div>`:'<div style="height:10px"></div>'}
+      <div class="hint" style="margin:0 0 6px"><b>Verfüttert</b> laut App</div>
       ${tbl(['Futterart','verfüttert'],rows,'Keine Fütterung im Zeitraum.')}</div>`;
-  }).join('')+`<div class="hint" style="margin-top:12px">Die Spalte „Futtermittelbezug“ der Anlage 11 meint den <b>Einkauf</b>, nicht die Verfütterung. Oben steht der Verbrauch je Anlage — den Bezug erfassen wir im Futtermanagement.</div>`;
+  }).join('')+`<div class="hint" style="margin-top:12px">Der Futtermittelbezug kommt aus dem Futterlager: Jeder Sack, den du bei „Sack an den Teich“ einer Anlage zubuchst, steht hier mit Datum und Menge.</div>`;
 }
 
 ['recFrom','recTo'].forEach(id=>
@@ -3189,8 +3235,8 @@ async function undoEntry(hid){
   } else {
     p.totalKg=Math.max(0,p.totalKg-h.gain);
     if(p.count>0) p.avgG=p.totalKg*1000/p.count;
-    if(h.gparts&&h.gparts.length) h.gparts.forEach(x=>{if(x.kg>0)lagZugang(x.key,x.kg)});
-    else if(h.gkey&&h.feed>0) lagZugang(h.gkey,h.feed);
+    if(h.gparts&&h.gparts.length) h.gparts.forEach(x=>{if(x.kg>0)lagZugang(x.key,x.kg,siteOf(p))});
+    else if(h.gkey&&h.feed>0) lagZugang(h.gkey,h.feed,siteOf(p));
   }
   p.history.splice(idx,1);
   document.getElementById('editTotal').value=fmt(p.totalKg,2).replace(',','.');
@@ -3229,8 +3275,8 @@ function bookFeed(p,date,kgOverride){
     const prev=p.history.slice(0,i).reverse().find(x=>typeof x.after==='number');
     if(prev) rec.after=prev.after+gain;
   } else p.history.push(rec);
-  if(parts) parts.forEach(x=>{if(x.kg>0)lagAbzug(x.key,x.kg)});
-  else if(gkey&&d.kg>0) lagAbzug(gkey,d.kg);
+  if(parts) parts.forEach(x=>{if(x.kg>0)lagAbzug(x.key,x.kg,siteOf(p))});
+  else if(gkey&&kg>0) lagAbzug(gkey,kg,siteOf(p));
   return {kg,gain};
 }
 
@@ -3818,7 +3864,7 @@ function initWeather(){
 }
 
 /* ================= Futterlager ================= */
-const LAG_DEFSACK={brut:20,futura2:25,gold:25,silver:25};
+const LAG_DEFSACK={brut:20,futura2:25,gold:25,silver:25,repex:25};
 
 function lagInit(){
   if(typeof calc!=='object'||!calc)return;
@@ -3860,22 +3906,40 @@ function lagWrite(key,kg,sack){
   if(sack>0)e.sack=sack;
   calc.lager[key]=e;
 }
-function lagBuch(art,key,kg,note){
+function lagBuch(art,key,kg,note,extra){
   lagInit();
-  calc.lagerLog.unshift({id:Date.now().toString(36)+Math.random().toString(36).slice(2,5),
-    date:today(),art,key,kg:Math.round(kg*1000)/1000,note:note||''});
+  const e={id:Date.now().toString(36)+Math.random().toString(36).slice(2,5),
+    date:today(),art,key,kg:Math.round(kg*1000)/1000,note:note||''};
+  if(extra)Object.assign(e,extra);
+  calc.lagerLog.unshift(e);
   if(calc.lagerLog.length>250)calc.lagerLog.length=250;
 }
-/* Abzug beim Füttern — still, ohne Logeintrag (steht im Teichverlauf) */
-function lagAbzug(key,kg){
+/* ---------- Futter am Teich ----------
+   calc.lager = Lager zu Hause (ganze Säcke), calc.amTeich[Anlage][Korngröße] = offener Sack am Teich.
+   Fütterungen ziehen vom Teich ab, Lieferungen gehen nach Hause, "Sack an den Teich" verschiebt. */
+function tlInit(){
+  lagInit();
+  if(!calc.amTeich||typeof calc.amTeich!=='object')calc.amTeich={};
+  if(!Array.isArray(calc.lieferungen))calc.lieferungen=[];
+}
+function tlKg(site,key){tlInit();const t=calc.amTeich[site];return (t&&typeof t[key]==='number')?t[key]:0}
+function tlWrite(site,key,kg){tlInit();(calc.amTeich[site]=calc.amTeich[site]||{})[key]=Math.round(kg*1000)/1000}
+function tlSum(key){tlInit();return Object.values(calc.amTeich).reduce((a,t)=>a+((t&&typeof t[key]==='number')?t[key]:0),0)}
+function lagGesamt(key){return lagKg(key)+tlSum(key)}
+function siteOk(site){return site&&site!==NOSITE}
+/* Abzug beim Füttern — still, ohne Logeintrag (steht im Teichverlauf).
+   Mit Anlage: vom Sack am Teich, sonst vom Lager zu Hause */
+function lagAbzug(key,kg,site){
   if(!key||!(kg>0))return;
-  lagWrite(key,lagKg(key)-kg);
+  if(siteOk(site)) tlWrite(site,key,tlKg(site,key)-kg);
+  else lagWrite(key,lagKg(key)-kg);
   calcSave();
 }
 /* Rückbuchung, wenn eine Fütterung zurückgenommen wird */
-function lagZugang(key,kg){
+function lagZugang(key,kg,site){
   if(!key||!(kg>0))return;
-  lagWrite(key,lagKg(key)+kg);
+  if(siteOk(site)) tlWrite(site,key,tlKg(site,key)+kg);
+  else lagWrite(key,lagKg(key)+kg);
   calcSave();
 }
 function grainKeyOf(pond){
@@ -3912,8 +3976,19 @@ function lagAmpel(cls){
 }
 
 /* ---------- Bestandsliste ---------- */
+function lagWoText(key){
+  const sack=lagSackOf(key), h=lagKg(key);
+  const teile=[];
+  if(Math.abs(h)>0.0005) teile.push(`zu Hause ${fmt(h,Math.abs(h)<10?2:1)} kg${h>0?` (${fmt(h/sack,h/sack%1?1:0)} Sack)`:''}`);
+  tlInit();
+  Object.keys(calc.amTeich).sort().forEach(site=>{
+    const v=tlKg(site,key);
+    if(Math.abs(v)>0.0005) teile.push(`${site} ${fmt(v,Math.abs(v)<10?2:1)} kg`);
+  });
+  return teile.join(' · ');
+}
 function lagRowHtml(g,tb,vor){
-  const bestand=lagKg(g.key);
+  const bestand=lagGesamt(g.key);
   const sack=lagSackOf(g.key);
   const tag=tb[g.key]||0;
   let cls='ok', kopf='', sub='';
@@ -3941,7 +4016,7 @@ function lagRowHtml(g,tb,vor){
       <span class="nm">${lagAmpel(cls)}<b style="font-family:'JetBrains Mono',monospace">${g.mm}</b> · ${g.name}</span>
       <span class="kg">${fmt(bestand,Math.abs(bestand)<10?2:1)} kg</span>
     </div>
-    <div class="gp-sub">${kopf} · ${sub}</div>
+    <div class="gp-sub">${lagWoText(g.key)?lagWoText(g.key)+'<br>':''}${kopf} · ${sub}</div>
   </div>`;
 }
 
@@ -3951,7 +4026,7 @@ function renderLager(){
   const tb=lagBedarfTag();
   const alle=!!calc.lagerAlle;
   const list=grainList();
-  const zeigen=list.filter(g=>alle||tb[g.key]>0||lagKg(g.key)!==0);
+  const zeigen=list.filter(g=>alle||tb[g.key]>0||Math.abs(lagGesamt(g.key))>0.0005);
 
   const box=document.getElementById('lagList');
   if(box){
@@ -3963,7 +4038,7 @@ function renderLager(){
   // Kopfzeile
   let gesKg=0, gesEur=0, warn=0;
   list.forEach(g=>{
-    const b=lagKg(g.key);
+    const b=lagGesamt(g.key);
     if(b>0){gesKg+=b; gesEur+=b*gPreis(g.key);}
     const t=tb[g.key]||0;
     if(t>0 && b<t*vor) warn++;
@@ -3981,6 +4056,8 @@ function renderLager(){
   const cb=document.getElementById('lagAlle');
   if(cb) cb.checked=alle;
 
+  renderLief();
+  renderTeichLager();
   renderLagPlan();
   renderLagWechsel();
   renderLagLog();
@@ -3999,7 +4076,7 @@ function renderLagPlan(){
   let fehlKg=0, fehlEur=0, gesKg=0;
   const rows=ks.map(k=>{
     const brauch=m[k];
-    const hab=Math.max(0,lagKg(k));
+    const hab=Math.max(0,lagGesamt(k));
     const fehl=Math.max(0,brauch-hab);
     const sack=lagSackOf(k);
     const sk=fehl>0?Math.ceil(fehl/sack):0;
@@ -4044,15 +4121,15 @@ function renderLagLog(){
   lagInit();
   const L=calc.lagerLog;
   if(!L.length){out.innerHTML='<div class="hint">Noch keine Bestandsaufnahme und kein Zugang gebucht.</div>';setSum('lagLog','');return}
-  const art={auf:'Bestandsaufnahme',zu:'Zugang',korr:'Korrektur'};
+  const art={auf:'Bestandsaufnahme',zu:'Zugang',korr:'Korrektur',teich:'an Teich',lief:'Lieferung',tkorr:'Korrektur am Teich'};
   out.innerHTML='<table class="log"><thead><tr><th>Datum</th><th>Korngröße</th><th>Art</th><th>kg</th><th></th></tr></thead><tbody>'
     + L.slice(0,40).map(e=>{
         const teil=String(e.key).split('|');
         return `<tr>
           <td class="name">${deDate(e.date)}</td>
           <td>${teil[1]||''}</td>
-          <td>${art[e.art]||e.art}</td>
-          <td>${e.art==='zu'?'+':''}${fmt(e.kg,e.kg<10?2:1)}</td>
+          <td>${art[e.art]||e.art}${e.site?' '+e.site:''}${e.art==='lief'&&e.note?' · '+e.note:''}</td>
+          <td>${(e.art==='zu'||e.art==='lief')?'+':''}${fmt(e.kg,e.kg<10?2:1)}</td>
           <td><span class="delete-x" data-lagundo="${e.id}">×</span></td>
         </tr>`;
       }).join('')
@@ -4067,9 +4144,18 @@ function lagUndo(id){
   const i=calc.lagerLog.findIndex(x=>x.id===id);
   if(i<0)return;
   const e=calc.lagerLog[i];
-  if(e.art==='zu'){
+  if(e.art==='zu'||e.art==='lief'){
     if(!confirm('Zugang zurücknehmen?'))return;
     lagWrite(e.key,lagKg(e.key)-e.kg);
+    if(e.lid){
+      const L=calc.lieferungen.find(x=>x.id===e.lid);
+      if(L){L.items=L.items.filter(it=>!(it.key===e.key&&Math.abs(it.saecke*it.sack-e.kg)<0.01));
+        if(!L.items.length)calc.lieferungen=calc.lieferungen.filter(x=>x.id!==e.lid);}
+    }
+  } else if(e.art==='teich'){
+    if(!confirm(`Sack von ${e.site} zurück ins Lager zu Hause buchen?`))return;
+    lagWrite(e.key,lagKg(e.key)+e.kg);
+    tlWrite(e.site,e.key,tlKg(e.site,e.key)-e.kg);
   } else {
     if(!confirm('Eintrag aus der Liste entfernen? Der Bestand bleibt, wie er jetzt ist.'))return;
   }
@@ -4077,6 +4163,123 @@ function lagUndo(id){
   calcSave();
   renderLager();
   toast('Eintrag entfernt.');
+}
+
+/* ---------- Lieferungen ---------- */
+function grainOptions(sel,filterFn){
+  const tb=lagBedarfTag();
+  return grainList().filter(g=>!filterFn||filterFn(g)).map(g=>{
+    const akt=tb[g.key]>0?' ●':'';
+    return `<option value="${g.key}"${g.key===sel?' selected':''}>${g.mm} — ${g.name}${akt}</option>`;
+  }).join('');
+}
+function liefRowHtml(key,n){
+  return `<div class="row2 liefrow">
+    <div class="field"><label>Korngröße</label><select class="liefKey">${grainOptions(key)}</select></div>
+    <div class="field"><label>Säcke</label><input type="number" class="liefN" step="1" min="0" inputmode="numeric" value="${n||''}" placeholder="0"></div>
+  </div>`;
+}
+function liefFormReset(){
+  const box=document.getElementById('liefRows'); if(!box)return;
+  const tb=lagBedarfTag(); const akt=Object.keys(tb)[0];
+  box.innerHTML=liefRowHtml(akt,'');
+  const d=document.getElementById('liefDate'); if(d) d.value=today();
+  ['liefEur','liefVon'].forEach(id=>{const e=document.getElementById(id);if(e)e.value=''});
+}
+function bucheLieferung(date,items,eur,von){
+  tlInit();
+  const lid='L'+Date.now().toString(36);
+  const clean=items.filter(it=>it.key&&it.saecke>0).map(it=>({key:it.key,saecke:it.saecke,sack:it.sack||lagSackOf(it.key)}));
+  if(!clean.length)return null;
+  clean.forEach(it=>{
+    const kg=it.saecke*it.sack;
+    lagWrite(it.key,lagKg(it.key)+kg,it.sack);
+    lagBuch('lief',it.key,kg,von||'',{lid,date});
+  });
+  calc.lieferungen.unshift({id:lid,date,eur:eur>0?Math.round(eur*100)/100:0,von:von||'',items:clean});
+  calcSave();
+  return clean;
+}
+function sackAnTeich(key,site,n,date){
+  const sack=lagSackOf(key), kg=n*sack;
+  lagWrite(key,lagKg(key)-kg);
+  tlWrite(site,key,tlKg(site,key)+kg);
+  lagBuch('teich',key,kg,'',{site,date:date||today(),saecke:n});
+  calcSave();
+  return kg;
+}
+const SEED_LIEF={date:'2026-10-05',eur:627,items:[
+  {key:'Aller Futura 2mm|2 mm',saecke:4},{key:'Aller Gold|3 mm',saecke:4}]};
+function renderLief(){
+  tlInit();
+  const seed=document.getElementById('lagSeed');
+  if(seed){
+    if(!calc.lieferungen.length&&!calc.seedLief){
+      seed.innerHTML=`<div class="arrowbox" style="margin:0 0 14px">
+        <h3>Lieferung vom 05.10. übernehmen?</h3>
+        <div class="hint" style="margin:6px 0 10px">4 Sack Futura 2 mm und 4 Sack Gold 3 mm für 627 €. Ein Sack 2 mm ist schon in Zittenfelden. Danach stehen zu Hause genau 3 Sack 2 mm und 4 Sack 3 mm.</div>
+        <div class="btn-row" style="margin:0"><button class="btn" id="seedYes">Übernehmen</button><button class="btn ghost" id="seedNo" style="flex:0 0 38%">Nein</button></div>
+      </div>`;
+      document.getElementById('seedYes').onclick=async()=>{
+        bucheLieferung(SEED_LIEF.date,SEED_LIEF.items,SEED_LIEF.eur,'');
+        sackAnTeich('Aller Futura 2mm|2 mm','Zittenfelden',1,today());
+        // Zu Hause genau das, was wirklich dasteht; am Teich ein voller Sack
+        lagWrite('Aller Futura 2mm|2 mm',3*lagSackOf('Aller Futura 2mm|2 mm'));
+        lagWrite('Aller Gold|3 mm',4*lagSackOf('Aller Gold|3 mm'));
+        tlWrite('Zittenfelden','Aller Futura 2mm|2 mm',lagSackOf('Aller Futura 2mm|2 mm'));
+        calc.seedLief=true; calcSave(); renderLager(); await save();
+        toast('Lieferung übernommen, 1 Sack 2 mm in Zittenfelden.');
+      };
+      document.getElementById('seedNo').onclick=async()=>{calc.seedLief=true;calcSave();renderLief();await save();};
+    } else seed.innerHTML='';
+  }
+  const list=document.getElementById('liefList');
+  if(list){
+    const L=calc.lieferungen.slice(0,8);
+    list.innerHTML=L.length?'<div class="hint" style="margin-bottom:6px">Letzte Lieferungen</div>'+L.map(l=>
+      `<div class="calcrow"><span>${deDate(l.date)}${l.von?' · '+l.von:''}<br><span style="color:var(--ink-soft);font-size:12px">${l.items.map(it=>`${it.saecke} × ${it.key.split('|')[1]} ${it.key.split('|')[0].replace('Aller ','')}`).join(', ')}</span></span><span>${l.eur>0?eur(l.eur):''}</span></div>`).join('')
+      :'';
+  }
+  const n=calc.lieferungen.length;
+  setSum('lagLief', n?`zuletzt am <b>${deDate(calc.lieferungen[0].date)}</b>`:'noch keine Lieferung');
+}
+function renderTeichLager(){
+  tlInit();
+  const ks=document.getElementById('tlKey');
+  if(ks&&document.activeElement!==ks){
+    const cur=ks.value;
+    ks.innerHTML=grainOptions(cur,g=>lagKg(g.key)>0.0005)||'<option value="">— zu Hause ist nichts im Lager —</option>';
+  }
+  const ss=document.getElementById('tlSite');
+  if(ss&&document.activeElement!==ss){
+    const cur=ss.value;
+    ss.innerHTML=allSites().map(x=>`<option${x===cur?' selected':''}>${x}</option>`).join('');
+  }
+  const out=document.getElementById('tlOut'); if(!out)return;
+  const sites=Object.keys(calc.amTeich).sort();
+  const rows=[];
+  sites.forEach(site=>Object.keys(calc.amTeich[site]).forEach(key=>{
+    const v=tlKg(site,key); if(Math.abs(v)<0.0005)return;
+    rows.push(`<div class="calcrow"><span><b>${site}</b> · ${key.split('|')[1]} ${key.split('|')[0].replace('Aller ','')}</span>
+      <span>${fmt(v,Math.abs(v)<10?2:1)} kg <span class="delete-x" style="margin-left:6px" title="korrigieren" data-tlk="${site}||${key}">✎</span></span></div>`);
+  }));
+  out.innerHTML=rows.length?'<div class="hint" style="margin-bottom:6px">Gerade am Teich</div>'+rows.join('')
+    +'<div class="hint" style="margin-top:6px">Mit ✎ korrigierst du, was im Sack am Teich wirklich noch drin ist.</div>'
+    :'<div class="hint">Am Teich ist noch kein Sack gebucht.</div>';
+  out.querySelectorAll('[data-tlk]').forEach(el=>el.addEventListener('click',async()=>{
+    const [site,key]=el.dataset.tlk.split('||');
+    const v=prompt(`Wie viel kg ${key.split('|')[1]} sind in ${site} noch da?`,String(Math.max(0,tlKg(site,key)).toFixed(1)).replace('.',','));
+    if(v===null)return;
+    const kg=parseFloat(String(v).replace(',','.'));
+    if(isNaN(kg)||kg<0){toast('Bitte eine Zahl eingeben.');return}
+    const alt=tlKg(site,key);
+    tlWrite(site,key,kg);
+    lagBuch('tkorr',key,kg-alt,'',{site});
+    calcSave(); renderLager(); await save();
+    toast(`${site}: ${fmt(kg,1)} kg am Teich.`);
+  }));
+  let am=0; sites.forEach(site=>Object.keys(calc.amTeich[site]).forEach(k=>{const v=tlKg(site,k);if(v>0)am+=v}));
+  setSum('lagTeich', am>0?`<b>${fmt(am,1)} kg</b> am Teich`:'nichts am Teich');
 }
 
 /* ---------- Formular ---------- */
@@ -4137,6 +4340,38 @@ function initLager(){
     lagBuch('auf',d.key,d.kg,'Inventur');
     calcSave(); lagClearForm(); lagFormRefresh(); renderLager();
     toast(`Bestand gesetzt: ${fmt(d.kg,d.kg<10?2:1)} kg.`);
+  });
+
+  liefFormReset();
+  const more=document.getElementById('liefMore');
+  if(more) more.addEventListener('click',()=>{
+    document.getElementById('liefRows').insertAdjacentHTML('beforeend',liefRowHtml('',''));
+  });
+  const lb=document.getElementById('liefBtn');
+  if(lb) lb.addEventListener('click',async()=>{
+    const date=document.getElementById('liefDate').value||today();
+    const items=[...document.querySelectorAll('#liefRows .liefrow')].map(r=>({
+      key:r.querySelector('.liefKey').value,
+      saecke:parseFloat(String(r.querySelector('.liefN').value).replace(',','.'))||0}));
+    const e=parseFloat(String(document.getElementById('liefEur').value).replace(',','.'))||0;
+    const von=document.getElementById('liefVon').value.trim();
+    const res=bucheLieferung(date,items,e,von);
+    if(!res){toast('Bitte mindestens eine Sorte mit Säcken eintragen.');return}
+    liefFormReset(); renderLager(); await save();
+    toast(`Lieferung gebucht: ${res.reduce((a,it)=>a+it.saecke,0)} Säcke.`);
+  });
+  const tb=document.getElementById('tlBtn');
+  if(tb) tb.addEventListener('click',async()=>{
+    const key=document.getElementById('tlKey').value;
+    const site=document.getElementById('tlSite').value;
+    const n=parseInt(document.getElementById('tlN').value,10)||0;
+    if(!key){toast('Zu Hause ist nichts im Lager.');return}
+    if(!siteOk(site)){toast('Bitte eine Anlage wählen.');return}
+    if(n<1){toast('Mindestens 1 Sack.');return}
+    const kg=sackAnTeich(key,site,n);
+    document.getElementById('tlN').value=1;
+    renderLager(); await save();
+    toast(`${n} Sack nach ${site} gebucht (${fmt(kg,0)} kg).`);
   });
 
   const addBtn=document.getElementById('lagAddBtn');
@@ -5598,6 +5833,11 @@ mischen:`<p><b>Wofür:</b> Wenn du zwei Korngrößen zusammen fütterst oder das
 <p>Die App mischt die Tabellenwerte im eingestellten Verhältnis und rechnet daraus Dauer, Futtermenge je Sorte und Kosten. Darunter siehst du, was die reinen Varianten kosten würden.</p>
 <p>Der Satz am Ende sagt dir, was dich ein gewonnener Tag kostet — damit kannst du entscheiden, ob sich das teurere Futter für dich lohnt.</p>
 <p><b>Was die App nicht rechnen kann:</b> wie gleichmäßig der Bestand bleibt. Kleines Korn länger geben hält die Fische beisammen, weil auch die schwächeren mitkommen. Früher hochgehen macht schneller, aber die kräftigen ziehen davon. Das steht in keiner Tabelle.</p>`,
+lagLief:`<p><b>Wofür:</b> Jede Futterlieferung eintragen, mit Datum, Säcken je Korngröße und Betrag. Die Säcke kommen ins Lager zu Hause.</p>
+<p>Gehört eine Lieferung zu zwei Anlagen, ist das egal. Wohin das Futter geht, entscheidest du erst beim Mitnehmen an den Teich.</p>`,
+lagTeich:`<p><b>Wofür:</b> Wenn du einen Sack von zu Hause an den Teich bringst. Zu Hause ist dann ein Sack weniger, am Teich steht der volle Sack.</p>
+<p>Jede Fütterung eines Teichs zieht von dem Sack an seiner Anlage ab. Was in Ottorfszell ankommt, steht automatisch als Futtermittelbezug im Betriebstagebuch nach Anlage 11.</p>
+<p>Mit dem Stift korrigierst du, wenn im Sack am Teich mehr oder weniger drin ist, als die App denkt.</p>`,
 lagBestand:`<p><b>Wofür:</b> Der Überblick, was im Lager liegt und wie lange es noch reicht.</p>
 <p>Die Ampel hängt nicht an den Kilos, sondern an der Reichweite. Ein 20-Kilo-Sack Brutfutter bei 200 Gramm am Tag reicht drei Monate, ein 25-Kilo-Sack 4,5 mm bei 2 Kilo am Tag keine zwei Wochen — deshalb rechnet die App je Sorte den <b>Mindestbestand</b> aus: Tagesbedarf mal Vorwarnzeit.</p>
 <p>Fällt der Bestand darunter, wird die Zeile rot und die App sagt dir, wie viele Sack du brauchst und wo du sie holst: ein bis zwei Sack beim Erzgebirge Shop, mehr bei Sauer.</p>
