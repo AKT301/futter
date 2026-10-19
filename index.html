@@ -4261,11 +4261,21 @@ function renderTeichLager(){
   sites.forEach(site=>Object.keys(calc.amTeich[site]).forEach(key=>{
     const v=tlKg(site,key); if(Math.abs(v)<0.0005)return;
     rows.push(`<div class="calcrow"><span><b>${site}</b> · ${key.split('|')[1]} ${key.split('|')[0].replace('Aller ','')}</span>
-      <span>${fmt(v,Math.abs(v)<10?2:1)} kg <span class="delete-x" style="margin-left:6px" title="korrigieren" data-tlk="${site}||${key}">✎</span></span></div>`);
+      <span style="white-space:nowrap">${fmt(v,Math.abs(v)<10?2:1)} kg <span class="delete-x" style="margin-left:6px" title="korrigieren" data-tlk="${site}||${key}">✎</span>
+      <span class="tl-leer" data-tll="${site}||${key}" style="margin-left:8px;padding:3px 9px;border:1px solid var(--line,#c9d6dc);border-radius:12px;font-size:12px;cursor:pointer">leer</span></span></div>`);
   }));
   out.innerHTML=rows.length?'<div class="hint" style="margin-bottom:6px">Gerade am Teich</div>'+rows.join('')
-    +'<div class="hint" style="margin-top:6px">Mit ✎ korrigierst du, was im Sack am Teich wirklich noch drin ist.</div>'
+    +'<div class="hint" style="margin-top:6px">Ist ein Sack aufgebraucht, tippst du auf <b>leer</b>, dann verschwindet er hier. Mit ✎ korrigierst du, wenn noch mehr oder weniger drin ist.</div>'
     :'<div class="hint">Am Teich ist noch kein Sack gebucht.</div>';
+  out.querySelectorAll('[data-tll]').forEach(el=>el.addEventListener('click',async()=>{
+    const [site,key]=el.dataset.tll.split('||');
+    const alt=tlKg(site,key);
+    if(!confirm(`${key.split('|')[1]} ${key.split('|')[0].replace('Aller ','')} in ${site} ist leer?`))return;
+    tlWrite(site,key,0);
+    if(Math.abs(alt)>0.0005) lagBuch('tkorr',key,-alt,'Sack leer',{site});
+    calcSave(); renderLager(); await save();
+    toast(`Sack in ${site} als leer gebucht.`);
+  }));
   out.querySelectorAll('[data-tlk]').forEach(el=>el.addEventListener('click',async()=>{
     const [site,key]=el.dataset.tlk.split('||');
     const v=prompt(`Wie viel kg ${key.split('|')[1]} sind in ${site} noch da?`,String(Math.max(0,tlKg(site,key)).toFixed(1)).replace('.',','));
