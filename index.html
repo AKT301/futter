@@ -441,6 +441,20 @@ h1 .qmark{width:23px;height:23px;min-width:23px;font-size:14px;margin-left:9px}
     </div>
     <div class="hint" style="text-align:center;margin:0 0 16px" id="feedStatus"></div>
 
+    <div class="card" data-fold="nachtrag">
+      <h2>Fütterung nachtragen</h2>
+      <div id="nachOffen"></div>
+      <div class="row2" style="margin-top:12px">
+        <div class="field"><label>Tag</label><input type="date" id="nachDate"></div>
+        <div class="field"><label>Futter (kg)</label><input type="number" id="nachKg" step="0.005" min="0" inputmode="decimal"></div>
+      </div>
+      <div class="btn-row" style="margin-bottom:0">
+        <button class="btn" id="nachBtn">Nachtragen</button>
+        <button class="btn ghost" id="nachSkipBtn" style="flex:0 0 42%">Kein Futter</button>
+      </div>
+      <div class="hint" style="margin-bottom:0">Für Tage, an denen du gefüttert, aber nicht gebucht hast. Zuwachs und Lagerabzug laufen wie beim normalen Füttern.</div>
+    </div>
+
     <div class="card" data-fold="ampel">
       <h2>Fütterungsstärke</h2>
       <div class="feed-pills three" id="ampPills">
@@ -453,7 +467,7 @@ h1 .qmark{width:23px;height:23px;min-width:23px;font-size:14px;margin-left:9px}
         <div class="field"><label>Rot: Aufschlag (%)</label><input type="number" id="ampPlus" step="1" min="0" max="100" inputmode="decimal"></div>
         <div class="field"><label>Grün: Abschlag (%)</label><input type="number" id="ampMinus" step="1" min="0" max="90" inputmode="decimal"></div>
       </div>
-      <div class="hint" style="margin-bottom:0">Die Stufe gilt für diesen Teich, die Prozentwerte für alle. Gelb rechnet immer genau nach Aller Aqua.</div>
+      <div class="hint" style="margin-bottom:0">Stufe und Prozentwerte gelten nur für diesen Teich. Gelb rechnet immer genau nach Aller Aqua.</div>
     </div>
 
     <div class="card" data-fold="menge">
@@ -1382,7 +1396,9 @@ const KEY='fischzucht-teiche-v1';
 let ponds=[]; let currentId=null; let newFeed='gold';
 
 function fmt(n,d){return Number(n).toLocaleString('de-DE',{minimumFractionDigits:d,maximumFractionDigits:d})}
-function today(){return new Date().toISOString().slice(0,10)}
+function today(){return isoLocal(new Date())}
+function isoLocal(dt){const y=dt.getFullYear(),m=String(dt.getMonth()+1).padStart(2,'0'),t=String(dt.getDate()).padStart(2,'0');return `${y}-${m}-${t}`}
+function addDays(iso,n){const [y,m,t]=iso.split('-').map(Number);return isoLocal(new Date(y,m-1,t+n))}
 function deDate(iso){const[a,b,c]=iso.split('-');return `${c}.${b}.${a}`}
 
 function interpTemp(vals,t){
@@ -1461,12 +1477,13 @@ function weekStats(pond){
 const AMPNAME={gruen:'Grün — sparsam',gelb:'Gelb — nach Tabelle',rot:'Rot — kräftig'};
 const AMPCOL={gruen:'#2F6B4F',gelb:'#C99A2E',rot:'#C0472B'};
 function ampOf(pond){const a=pond&&pond.amp;return (a==='rot'||a==='gruen')?a:'gelb'}
-function ampPlusPct(){try{const v=Number(calc.ampPlus);return (v>=0&&v<=200)?v:20}catch(e){return 20}}
-function ampMinusPct(){try{const v=Number(calc.ampMinus);return (v>=0&&v<=90)?v:20}catch(e){return 20}}
+/* Prozentwerte je Teich; hat ein Teich noch keinen eigenen Wert, gilt der alte gemeinsame Wert als Startwert */
+function ampPlusPct(pond){try{const own=pond&&pond.ampPlus;const v=Number((own!==undefined&&own!==null&&own!=='')?own:calc.ampPlus);return (v>=0&&v<=200)?v:20}catch(e){return 20}}
+function ampMinusPct(pond){try{const own=pond&&pond.ampMinus;const v=Number((own!==undefined&&own!==null&&own!=='')?own:calc.ampMinus);return (v>=0&&v<=90)?v:20}catch(e){return 20}}
 function ampelFac(pond){
   const a=ampOf(pond);
-  if(a==='rot')   return 1+ampPlusPct()/100;
-  if(a==='gruen') return 1-ampMinusPct()/100;
+  if(a==='rot')   return 1+ampPlusPct(pond)/100;
+  if(a==='gruen') return 1-ampMinusPct(pond)/100;
   return 1;
 }
 
@@ -1745,7 +1762,7 @@ function renderDetail(){
   document.getElementById('tempVal').textContent=fmt(p.temp,1);
   document.getElementById('dailyKg').innerHTML=`${fmt(d.kg,d.kg<10?3:2)}<span> kg</span>`;
   const ampTxt = (d.amp&&d.amp!=='gelb')
-    ? ` · ${d.amp==='rot'?'Rot +'+fmt(ampPlusPct(),0):'Grün −'+fmt(ampMinusPct(),0)} %` : '';
+    ? ` · ${d.amp==='rot'?'Rot +'+fmt(ampPlusPct(p),0):'Grün −'+fmt(ampMinusPct(p),0)} %` : '';
   document.getElementById('dailyPct').textContent=
     (d.manual
     ? `Deine Menge · Empfehlung wären ${fmt(d.rec,d.rec<10?3:2)} kg (${fmt(d.recPer100,2)} kg je 100 kg)`
@@ -1755,6 +1772,7 @@ function renderDetail(){
     + (d.manual?'':ampTxt) + (d.mixed?' · gemischt':'');
   document.getElementById('pelletSize').textContent=d.mm||d.cls.mm;
   renderAmpel(p,d);
+  renderNachtrag(p);
   document.getElementById('biomassNow').textContent=fmt(p.totalKg,1)+' kg';
   const below = p.avgG < d.cls.min, above = p.avgG > d.cls.max;
   document.getElementById('feedHint').innerHTML =
@@ -2217,14 +2235,83 @@ function mixVorschlag(p,ka){
   return sortiert[0]===ka?(sortiert[1]||ka):sortiert[0];
 }
 
+/* ---------- Fütterung nachtragen ---------- */
+/* Tage der letzten 14 ohne Buchung (weder gefüttert noch "kein Futter"),
+   frühestens ab der ersten Buchung des Teichs */
+function missingDays(p){
+  const log=feedLog(p);
+  if(!log.length)return [];
+  const first=log.reduce((m,h)=>h.date<m?h.date:m,log[0].date);
+  const have=new Set(log.map(h=>h.date));
+  const out=[];
+  for(let n=14;n>=1;n--){
+    const d=addDays(today(),-n);
+    if(d>=first&&!have.has(d))out.push(d);
+  }
+  return out;
+}
+const WTAG=['So','Mo','Di','Mi','Do','Fr','Sa'];
+function wtag(iso){const [y,m,t]=iso.split('-').map(Number);return WTAG[new Date(y,m-1,t).getDay()]}
+function renderNachtrag(p){
+  const box=document.getElementById('nachOffen');
+  if(!box)return;
+  const di=document.getElementById('nachDate'), ki=document.getElementById('nachKg');
+  const gestern=addDays(today(),-1);
+  di.max=gestern;
+  const miss=missingDays(p);
+  if(!di.value||di.value>gestern) di.value=miss.length?miss[miss.length-1]:gestern;
+  if(document.activeElement!==ki) ki.value=Number(activeRation(p).kg.toFixed(3));
+  box.innerHTML=miss.length
+    ? `<div class="hint" style="margin:0 0 8px">Ohne Buchung in den letzten 14 Tagen:</div>
+       <div style="display:flex;flex-wrap:wrap;gap:6px">${miss.map(d=>
+         `<span class="pill nachday${d===di.value?' active':''}" data-d="${d}" style="flex:0 0 auto;padding:6px 10px">${wtag(d)} ${deDate(d).slice(0,6)}</span>`).join('')}</div>`
+    : '<div class="hint" style="margin:0">Alle Tage der letzten 14 sind gebucht.</div>';
+  box.querySelectorAll('.nachday').forEach(el=>el.addEventListener('click',()=>{
+    di.value=el.dataset.d; renderNachtrag(p);
+  }));
+  setSum('nachtrag', miss.length?`<b>${miss.length}</b> Tag${miss.length===1?'':'e'} ohne Buchung`:'Alles gebucht');
+}
+async function nachtragen(skip){
+  const p=ponds.find(x=>x.id===currentId);
+  if(!p)return;
+  const date=document.getElementById('nachDate').value;
+  if(!date){toast('Bitte einen Tag wählen.');return}
+  if(date>=today()){toast('Für heute bitte die normalen Knöpfe oben nehmen.');return}
+  const schon=feedLog(p).filter(h=>h.date===date);
+  if(schon.length&&!confirm(`Am ${deDate(date)} ist schon etwas gebucht. Trotzdem noch einen Eintrag dazu?`))return;
+  if(skip){
+    const rec={id:Date.now().toString(36),date,feed:0,gain:0,after:p.totalKg,skip:true,nach:true};
+    const i=insertByDate(p,rec);
+    const prev=p.history.slice(0,i).reverse().find(x=>typeof x.after==='number');
+    if(prev) rec.after=prev.after;
+    toast(`${deDate(date)} als Tag ohne Futter eingetragen.`);
+  } else {
+    const kg=parseFloat(String(document.getElementById('nachKg').value).replace(',','.'));
+    if(isNaN(kg)||kg<=0){toast('Bitte die Futtermenge eintragen.');return}
+    const r=bookFeed(p,date,kg);
+    toast(`Nachgetragen ${deDate(date)}: ${fmt(r.kg,3)} kg, +${fmt(r.gain,3)} kg Zuwachs.`);
+  }
+  document.getElementById('nachDate').value='';
+  document.getElementById('editTotal').value=Number(p.totalKg.toFixed(2));
+  document.getElementById('editAvg').value=Number(p.avgG.toFixed(2));
+  document.getElementById('editCount').value=stockCount(p);
+  renderDetail();
+  await save();
+}
+document.getElementById('nachBtn').addEventListener('click',()=>nachtragen(false));
+document.getElementById('nachSkipBtn').addEventListener('click',()=>nachtragen(true));
+document.getElementById('nachDate').addEventListener('change',()=>{
+  const p=ponds.find(x=>x.id===currentId); if(p)renderNachtrag(p);
+});
+
 /* ---------- Fütterungs-Ampel: Anzeige und Bedienung ---------- */
 function renderAmpel(p,d){
   const a=ampOf(p);
   document.querySelectorAll('#ampPills .pill').forEach(el=>
     el.classList.toggle('active',el.dataset.amp===a));
   const pi=document.getElementById('ampPlus'), mi=document.getElementById('ampMinus');
-  if(pi&&document.activeElement!==pi) pi.value=ampPlusPct();
-  if(mi&&document.activeElement!==mi) mi.value=ampMinusPct();
+  if(pi&&document.activeElement!==pi) pi.value=ampPlusPct(p);
+  if(mi&&document.activeElement!==mi) mi.value=ampMinusPct(p);
   const out=document.getElementById('ampOut');
   if(!out)return;
   const tab=tableDaily(p);
@@ -2257,10 +2344,9 @@ document.querySelectorAll('#ampPills .pill').forEach(el=>{
   const el=document.getElementById(id);
   if(!el)return;
   el.addEventListener('change',async()=>{
-    const v=parseFloat(el.value);
-    if(!isNaN(v)&&v>=0) calc[id==='ampPlus'?'ampPlus':'ampMinus']=v;
-    calcSave();
+    const v=parseFloat(String(el.value).replace(',','.'));
     const p=ponds.find(x=>x.id===currentId);
+    if(p&&!isNaN(v)&&v>=0) p[id==='ampPlus'?'ampPlus':'ampMinus']=v;
     if(p&&(p.rationMode||'weekly')!=='daily'&&ampOf(p)!=='gelb') recalcRation(p);
     if(p)renderDetail();
     await save();
@@ -2496,8 +2582,8 @@ function renderHistory(p){
   const totalGain=log.reduce((s,h)=>s+h.gain,0);
   const rows=[...log].reverse().slice(0,30).map(h=>
     h.skip
-    ? `<tr style="opacity:.6"><td class="name">${deDate(h.date)}</td><td colspan="3" style="font-family:Inter,sans-serif">kein Futter</td><td><span class="delete-x" data-id="${h.id}">✕</span></td></tr>`
-    : `<tr><td class="name">${deDate(h.date)}</td><td>${fmt(h.feed,3)}</td><td>+${fmt(h.gain,3)}</td>
+    ? `<tr style="opacity:.6"><td class="name">${deDate(h.date)}${h.nach?' <span title="nachgetragen">↺</span>':''}</td><td colspan="3" style="font-family:Inter,sans-serif">kein Futter</td><td><span class="delete-x" data-id="${h.id}">✕</span></td></tr>`
+    : `<tr><td class="name">${deDate(h.date)}${h.nach?' <span title="nachgetragen">↺</span>':''}</td><td>${fmt(h.feed,3)}</td><td>+${fmt(h.gain,3)}</td>
      <td>${fmt(h.after,1)}</td><td><span class="delete-x" data-id="${h.id}">✕</span></td></tr>`).join('');
   w.innerHTML=`<table class="log">
     <thead><tr><th>Datum</th><th>Futter kg</th><th>Zuwachs</th><th>Bestand</th><th></th></tr></thead>
@@ -3116,22 +3202,36 @@ async function undoEntry(hid){
 }
 
 /* ---------- actions ---------- */
-function bookFeed(p){
+/* Eintrag nach Datum einsortieren, damit "heute gefüttert" und Wochenwerte stimmen */
+function insertByDate(p,rec){
+  const h=p.history;
+  let i=h.length;
+  while(i>0&&h[i-1].date>rec.date)i--;
+  h.splice(i,0,rec);
+  return i;
+}
+function bookFeed(p,date,kgOverride){
   const d=activeRation(p);
-  const gain=d.kg/p.fcr;
+  const kg=(kgOverride!==undefined)?kgOverride:d.kg;
+  const gain=kg/p.fcr;
   const gkey=(d.cls&&PRODUCTS[p.feed])?(PRODUCTS[p.feed].name+'|'+d.cls.mm):'';
-  const parts=mixParts(p,d.kg);
+  const parts=mixParts(p,kg);
   p.count=p.avgG>0?Math.round(p.totalKg*1000/p.avgG):0;
   p.totalKg=p.totalKg+gain;
   if(p.count>0) p.avgG=p.totalKg*1000/p.count;
   const rec={id:Date.now().toString(36)+Math.random().toString(36).slice(2,5),
-    date:today(),feed:d.kg,gain,after:p.totalKg,gkey};
+    date:date||today(),feed:kg,gain,after:p.totalKg,gkey};
   if(parts) rec.gparts=parts.map(x=>({key:x.key,kg:Math.round(x.kg*1000)/1000}));
-  if(d.amp&&d.amp!=='gelb') rec.amp=d.amp;
-  p.history.push(rec);
+  if(d.amp&&d.amp!=='gelb'&&kgOverride===undefined) rec.amp=d.amp;
+  if(date&&date!==today()){
+    rec.nach=true;
+    const i=insertByDate(p,rec);
+    const prev=p.history.slice(0,i).reverse().find(x=>typeof x.after==='number');
+    if(prev) rec.after=prev.after+gain;
+  } else p.history.push(rec);
   if(parts) parts.forEach(x=>{if(x.kg>0)lagAbzug(x.key,x.kg)});
   else if(gkey&&d.kg>0) lagAbzug(gkey,d.kg);
-  return {kg:d.kg,gain};
+  return {kg,gain};
 }
 
 document.getElementById('feedAllBtn').addEventListener('click',async()=>{
@@ -5488,9 +5588,11 @@ function initFin(){
 
 /* ================= Erklärungen ================= */
 const HELP={
+nachtrag:`<p><b>Wofür:</b> Wenn du an einem Tag gefüttert, aber vergessen hast zu buchen. Tag wählen (oder oben auf einen der Tage ohne Buchung tippen), Menge prüfen, nachtragen.</p>
+<p>Der Zuwachs kommt auf den heutigen Bestand, das Futter geht vom Lager ab. Im Protokoll steht hinter dem Datum ein ↺. Mit dem ✕ im Protokoll lässt sich ein Nachtrag wieder zurücknehmen.</p>`,
 ampel:`<p><b>Wofür:</b> Wenn du bewusst kräftiger oder sparsamer fütterst als die Tabelle sagt — etwa weil du bestimmte Fische früher brauchst.</p>
 <p><b>Gelb</b> rechnet genau nach Aller Aqua. <b>Rot</b> legt den eingestellten Prozentsatz drauf, <b>Grün</b> zieht ihn ab. Start ist bei zwanzig Prozent, du kannst beides selbst ändern.</p>
-<p>Die Stufe gilt pro Teich, die Prozentwerte für alle Teiche zusammen. Die Ampel wirkt auf die Tagesration, auf die Mastplanung, auf den Futtervergleich und auf den Lagerbedarf — überall die gleiche Zahl.</p>
+<p>Stufe und Prozentwerte gelten pro Teich, jeder Teich hat seine eigenen. Die Ampel wirkt auf die Tagesration, auf die Mastplanung, auf den Futtervergleich und auf den Lagerbedarf — überall die gleiche Zahl.</p>
 <p>Fütterst du eine feste eigene Menge, ist die Ampel ausgesetzt: dann zählt deine Zahl.</p>`,
 mischen:`<p><b>Wofür:</b> Wenn du zwei Korngrößen zusammen fütterst oder das kleine Korn länger gibst.</p>
 <p>Die App mischt die Tabellenwerte im eingestellten Verhältnis und rechnet daraus Dauer, Futtermenge je Sorte und Kosten. Darunter siehst du, was die reinen Varianten kosten würden.</p>
